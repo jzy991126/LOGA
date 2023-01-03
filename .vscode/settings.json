@@ -8,13 +8,16 @@
     "C_Cpp.errorSquiggles": "disabled",
     "clangd.arguments": [
         "--compile-commands-dir=.vscode",
-        "-j=24",
+        "-j=12",
         "--log=error",
         "--completion-style=bundled",
         "--background-index",
         "--header-insertion=never",
         "--pch-storage=memory",
         "--offset-encoding=utf-8"
+    ],
+    "clangd.fallbackFlags": [
+        "-std=c++17"
     ],
     "editor.accessibilitySupport": "off"
 }

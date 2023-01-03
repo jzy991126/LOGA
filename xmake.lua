@@ -1,14 +1,16 @@
 add_rules("mode.debug", "mode.release")
 
 set_defaultarchs("x64")
+set_languages("c++17")
 add_requires("vcpkg::glfw3","vcpkg::glad")
 add_links("glfw3","Shell32","opengl32","glad","user32","winmm","gdi32")
-
+add_includedirs("include")
 
 target("learnopengl")
     add_packages("vcpkg::glfw3","vcpkg::glad")
     set_kind("binary")
     add_files("src/*.cpp")
+    set_rundir("$(projectdir)/")
 
 --
 -- If you want to known more usage about xmake, please see https://xmake.io
