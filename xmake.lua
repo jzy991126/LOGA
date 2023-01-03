@@ -4,7 +4,7 @@ set_defaultarchs("x64")
 set_languages("c++17")
 add_requires("vcpkg::glfw3","vcpkg::glad")
 add_links("glfw3","Shell32","opengl32","glad","user32","winmm","gdi32")
-add_includedirs("include")
+add_includedirs("include","third")
 
 target("learnopengl")
     add_packages("vcpkg::glfw3","vcpkg::glad")

@@ -3,6 +3,7 @@
 build/
 .cache/
 .vscode/.cache/
+img/
 
 # MacOS Cache
 .DS_Store
