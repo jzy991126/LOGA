@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include "shader.h"
+#include "camera.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -16,91 +17,20 @@
 #include <imgui_impl_opengl3.h>
 
 int screen_width, screen_height;
+float lastX = 400, lastY = 400;
+
+float deltaTime = 0.0f; // 当前帧与上一帧的时间差
+float lastFrame = 0.0f; // 上一帧的时间
+bool first_mouse = true;
 
 void frame_buffer_size_callback(GLFWwindow *window, int width, int height);
 void process_input(GLFWwindow *window);
+void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 
-void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id,
-                            GLenum severity, GLsizei length,
-                            const char *message, const void *userParam) {
-  // ignore non-significant error/warning codes
-  if (id == 131169 || id == 131185 || id == 131218 || id == 131204)
-    return;
+Camera camera(glm::vec3(0, 0, 3));
 
-  std::cout << "---------------" << std::endl;
-  std::cout << "Debug message (" << id << "): " << message << std::endl;
-
-  switch (source) {
-  case GL_DEBUG_SOURCE_API:
-    std::cout << "Source: API";
-    break;
-  case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-    std::cout << "Source: Window System";
-    break;
-  case GL_DEBUG_SOURCE_SHADER_COMPILER:
-    std::cout << "Source: Shader Compiler";
-    break;
-  case GL_DEBUG_SOURCE_THIRD_PARTY:
-    std::cout << "Source: Third Party";
-    break;
-  case GL_DEBUG_SOURCE_APPLICATION:
-    std::cout << "Source: Application";
-    break;
-  case GL_DEBUG_SOURCE_OTHER:
-    std::cout << "Source: Other";
-    break;
-  }
-  std::cout << std::endl;
-
-  switch (type) {
-  case GL_DEBUG_TYPE_ERROR:
-    std::cout << "Type: Error";
-    break;
-  case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-    std::cout << "Type: Deprecated Behaviour";
-    break;
-  case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-    std::cout << "Type: Undefined Behaviour";
-    break;
-  case GL_DEBUG_TYPE_PORTABILITY:
-    std::cout << "Type: Portability";
-    break;
-  case GL_DEBUG_TYPE_PERFORMANCE:
-    std::cout << "Type: Performance";
-    break;
-  case GL_DEBUG_TYPE_MARKER:
-    std::cout << "Type: Marker";
-    break;
-  case GL_DEBUG_TYPE_PUSH_GROUP:
-    std::cout << "Type: Push Group";
-    break;
-  case GL_DEBUG_TYPE_POP_GROUP:
-    std::cout << "Type: Pop Group";
-    break;
-  case GL_DEBUG_TYPE_OTHER:
-    std::cout << "Type: Other";
-    break;
-  }
-  std::cout << std::endl;
-
-  switch (severity) {
-  case GL_DEBUG_SEVERITY_HIGH:
-    std::cout << "Severity: high";
-    break;
-  case GL_DEBUG_SEVERITY_MEDIUM:
-    std::cout << "Severity: medium";
-    break;
-  case GL_DEBUG_SEVERITY_LOW:
-    std::cout << "Severity: low";
-    break;
-  case GL_DEBUG_SEVERITY_NOTIFICATION:
-    std::cout << "Severity: notification";
-    break;
-  }
-  std::cout << std::endl;
-  std::cout << std::endl;
-}
-int main(int argc, char *argv[]) {
+int main() {
 
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -112,12 +42,14 @@ int main(int argc, char *argv[]) {
 
   GLFWwindow *window = glfwCreateWindow(800, 800, "yang", nullptr, nullptr);
   glfwMakeContextCurrent(window);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPosCallback(window, mouse_callback);
 
   gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
   glViewport(0, 0, 800, 800);
   glfwSetFramebufferSizeCallback(window, frame_buffer_size_callback);
-
+  glEnable(GL_DEPTH_TEST);
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO &io = ImGui::GetIO();
@@ -152,7 +84,7 @@ int main(int argc, char *argv[]) {
       -0.5f, 0.5f,  0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f};
 
   unsigned int indices[] = {
-      // 注意索引从0开始! 
+      // 注意索引从0开始!
       // 此例的索引(0,1,2,3)就是顶点数组vertices的下标，
       // 这样可以由下标代表顶点组合成矩形
 
@@ -186,6 +118,13 @@ int main(int argc, char *argv[]) {
   //                       (void *)(6 * sizeof(float)));
   // glEnableVertexAttribArray(2);
 
+  glBindVertexArray(0);
+
+  unsigned int light_vao;
+  glGenVertexArrays(1, &light_vao);
+  glBindVertexArray(light_vao);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
   glBindVertexArray(0);
 
   Shader shader("shaders/1/shader.vs", "shaders/1/shader.fs");
@@ -243,9 +182,6 @@ int main(int argc, char *argv[]) {
       glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
       glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)};
 
-  glm::mat4 trans(1.0);
-  trans = glm::rotate(trans, glm::radians(90.f), glm::vec3(0., 0., 1.));
-  glEnable(GL_DEPTH_TEST);
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     process_input(window);
@@ -253,17 +189,22 @@ int main(int argc, char *argv[]) {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    float currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+    glfwSetScrollCallback(window, scroll_callback);
+
     // glm::mat4 model(1.0);
     // model = glm::rotate(model, float(glfwGetTime()), glm::vec3(1., 0., 0.));
 
     glm::mat4 view(1.0);
-    view = glm::translate(view, glm::vec3(0, 0, -3));
+    view = camera.GetViewMatrix();
     glm::mat4 projection;
-    projection = glm::perspective(
-        glm::radians(45.0f), float(screen_width) / screen_height, 0.1f, 100.0f);
+    projection =
+        glm::perspective(glm::radians(camera.Zoom),
+                         float(screen_width) / screen_height, 0.1f, 100.0f);
 
     float time_value = glfwGetTime();
-    float green = (sin(time_value));
 
     glClearColor(0.2, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -319,4 +260,37 @@ void frame_buffer_size_callback(GLFWwindow *window, int width, int height) {
 void process_input(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose(window, true);
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    camera.ProcessKeyboard(FORWARD, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    camera.ProcessKeyboard(BACKWARD, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    camera.ProcessKeyboard(LEFT, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+void mouse_callback(GLFWwindow *window, double xposIn, double yposIn) {
+
+  auto xpos = static_cast<float>(xposIn);
+  auto ypos = static_cast<float>(yposIn);
+
+  if (first_mouse) {
+    lastX = xpos;
+    lastY = ypos;
+    first_mouse = false;
+  }
+
+  float xoffset = xpos - lastX;
+  float yoffset =
+      lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+  lastX = xpos;
+  lastY = ypos;
+
+  camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+  camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
