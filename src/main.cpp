@@ -5,6 +5,18 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/ext.hpp>
+#include <glm/gtx/string_cast.hpp>
+
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+
+int screen_width, screen_height;
+
 void frame_buffer_size_callback(GLFWwindow *window, int width, int height);
 void process_input(GLFWwindow *window);
 
@@ -95,20 +107,8 @@ int main(int argc, char *argv[]) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  // glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
-
-  //   int flags;
-  //   glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
-  //   if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
-  //     // initialize debug output
-  //     glEnable(GL_DEBUG_OUTPUT);
-  //     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-  //     glDebugMessageCallback(glDebugOutput, nullptr);
-  //     glDebugMessageControl(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR,
-  //                           GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
-  //   }
-  // glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GL_TRUE);
-  // glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+  screen_width = 800;
+  screen_height = 800;
 
   GLFWwindow *window = glfwCreateWindow(800, 800, "yang", nullptr, nullptr);
   glfwMakeContextCurrent(window);
@@ -118,12 +118,38 @@ int main(int argc, char *argv[]) {
   glViewport(0, 0, 800, 800);
   glfwSetFramebufferSizeCallback(window, frame_buffer_size_callback);
 
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO &io = ImGui::GetIO();
+  // Setup Platform/Renderer bindings
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init();
+  // Setup Dear ImGui style
+  ImGui::StyleColorsDark();
   float vertices[] = {
-      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // 右上
-      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // 右下
-      -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // 左下
-      -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // 左上
-  };
+      -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 0.0f,
+      0.5f,  0.5f,  -0.5f, 1.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+      -0.5f, 0.5f,  0.5f,  0.0f, 1.0f, -0.5f, -0.5f, 0.5f,  0.0f, 0.0f,
+
+      -0.5f, 0.5f,  0.5f,  1.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 1.0f, 1.0f,
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  0.5f,  1.0f, 0.0f,
+
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      0.5f,  -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 0.0f, 1.0f,
+      0.5f,  -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 1.0f,
+      0.5f,  -0.5f, 0.5f,  1.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+      -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+      -0.5f, 0.5f,  0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f};
 
   unsigned int indices[] = {
       // 注意索引从0开始! 
@@ -142,23 +168,23 @@ int main(int argc, char *argv[]) {
   glGenBuffers(1, &VBO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-  unsigned int EBO;
-  glGenBuffers(1, &EBO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-               GL_STATIC_DRAW);
+  // unsigned int EBO;
+  // glGenBuffers(1, &EBO);
+  // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+  //              GL_STATIC_DRAW);
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
 
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                         (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                        (void *)(6 * sizeof(float)));
-  glEnableVertexAttribArray(2);
+  // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+  //                       (void *)(6 * sizeof(float)));
+  // glEnableVertexAttribArray(2);
 
   glBindVertexArray(0);
 
@@ -210,34 +236,83 @@ int main(int argc, char *argv[]) {
   shader.SetInt("ourTexture", 0);
   shader.SetInt("ourTexture1", 1);
 
+  glm::vec3 cubePositions[] = {
+      glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
+      glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
+      glm::vec3(2.4f, -0.4f, -3.5f),  glm::vec3(-1.7f, 3.0f, -7.5f),
+      glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
+      glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)};
+
+  glm::mat4 trans(1.0);
+  trans = glm::rotate(trans, glm::radians(90.f), glm::vec3(0., 0., 1.));
+  glEnable(GL_DEPTH_TEST);
   while (!glfwWindowShouldClose(window)) {
+    glfwPollEvents();
     process_input(window);
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    // glm::mat4 model(1.0);
+    // model = glm::rotate(model, float(glfwGetTime()), glm::vec3(1., 0., 0.));
+
+    glm::mat4 view(1.0);
+    view = glm::translate(view, glm::vec3(0, 0, -3));
+    glm::mat4 projection;
+    projection = glm::perspective(
+        glm::radians(45.0f), float(screen_width) / screen_height, 0.1f, 100.0f);
 
     float time_value = glfwGetTime();
     float green = (sin(time_value));
 
     glClearColor(0.2, 0.2, 0.2, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     shader.Use();
+    // shader.SetMat4f("model", glm::value_ptr(model));
+    shader.SetMat4f("view", glm::value_ptr(view));
+    shader.SetMat4f("projection", glm::value_ptr(projection));
     // shader.SetFloat("ti", green);
     glActiveTexture(GL_TEXTURE0); // 在绑定纹理之前先激活纹理单元
     glBindTexture(GL_TEXTURE_2D, texture);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture1);
     glBindVertexArray(VAO); //
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    {
+      for (unsigned int i = 0; i < 10; i++) {
+        glm::mat4 model(1.f);
+        model = glm::translate(model, cubePositions[i]);
+        float angle = 20.0f * i;
+        model = glm::rotate(model, float(glfwGetTime()),
+                            glm::vec3(1.0f, 0.3f, 0.5f));
+        shader.SetMat4f("model", glm::value_ptr(model));
+
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+      }
+    }
+    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
-    // glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    ImGui::Begin("Demo window");
+    ImGui::Button("Hello!");
+    ImGui::End();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     glfwSwapBuffers(window);
-    glfwPollEvents();
   }
+  ImGui::Render();
+  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   glfwTerminate();
   return 0;
 }
 
 void frame_buffer_size_callback(GLFWwindow *window, int width, int height) {
+  screen_width = width;
+  screen_height = height;
   glViewport(0, 0, width, height);
 }
 
