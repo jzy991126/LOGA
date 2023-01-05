@@ -8,9 +8,6 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/ext.hpp>
-#include <glm/gtx/string_cast.hpp>
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -218,21 +215,31 @@ int main() {
     //    glActiveTexture(GL_TEXTURE1);
     //    glBindTexture(GL_TEXTURE_2D, texture1);
 
-    float light_pos_z = 10*sin(glfwGetTime());
-    float light_pos_x = 10*cos(glfwGetTime());
-    light_pos = glm::vec3(light_pos_x,1.f,light_pos_z);
+    float light_pos_z = 10 * sin(glfwGetTime());
+    float light_pos_x = 10 * cos(glfwGetTime());
+    light_pos = glm::vec3(light_pos_x, 1.f, light_pos_z);
     {
       glBindVertexArray(VAO); //
       obj_shader.Use();
       // shader.SetMat4f("model", glm::value_ptr(model));
-      obj_shader.SetMat4f("view", glm::value_ptr(view));
-      obj_shader.SetMat4f("projection", glm::value_ptr(projection));
+      obj_shader.SetMat4f("view", view);
+      obj_shader.SetMat4f("projection", projection);
       glm::mat4 model(1.f);
-      obj_shader.SetMat4f("model", glm::value_ptr(model));
-      obj_shader.SetVec3("objectColor", glm::value_ptr(obj_color));
-      obj_shader.SetVec3("lightColor", glm::value_ptr(light_color));
-      obj_shader.SetVec3("light_pos",glm::value_ptr(light_pos));
-      obj_shader.SetVec3("view_pos",glm::value_ptr(camera.Position));
+      obj_shader.SetMat4f("model", model);
+      obj_shader.SetVec3("objectColor", obj_color);
+      obj_shader.SetVec3("lightColor", light_color);
+      obj_shader.SetVec3("view_pos", camera.Position);
+      obj_shader.SetVec3("material.ambient", glm::vec3( 0.19225,0.19225,0.19225));
+      obj_shader.SetVec3("material.diffuse", glm::vec3(0.50754 ,0.50754, 0.50754));
+      obj_shader.SetVec3("material.specular", glm::vec3(0.508273, 0.508273 ,0.508273));
+      obj_shader.SetFloat("material.shininess",  0.4 * 128);
+      obj_shader.SetVec3("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
+      obj_shader.SetVec3(
+          "light.diffuse",
+          glm::vec3(0.5f, 0.5f, 0.5f)); // 将光照调暗了一些以搭配场景
+      obj_shader.SetVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+      obj_shader.SetVec3("light.position", light_pos);
+
       glDrawArrays(GL_TRIANGLES, 0, 36);
       glBindVertexArray(0);
     }
@@ -240,13 +247,13 @@ int main() {
     {
       glBindVertexArray(light_vao);
       light_shader.Use();
-      light_shader.SetMat4f("view", glm::value_ptr(view));
-      light_shader.SetMat4f("projection", glm::value_ptr(projection));
+      light_shader.SetMat4f("view", view);
+      light_shader.SetMat4f("projection", projection);
 
       auto model = glm::mat4(1.f);
       model = glm::translate(model, light_pos);
       model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-      light_shader.SetMat4f("model", glm::value_ptr(model));
+      light_shader.SetMat4f("model", model);
       model = glm::scale(model, glm::vec3(0.2f));
       glDrawArrays(GL_TRIANGLES, 0, 36);
       glBindVertexArray(0);

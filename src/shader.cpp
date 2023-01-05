@@ -1,4 +1,5 @@
 #include "shader.h"
+#include <glm/gtc/type_ptr.hpp>
 
 Shader::Shader(const char *vertex_path, const char *fragment_path) {
   // 1. retrieve the vertex/fragment source code from filePath
@@ -66,9 +67,9 @@ void Shader::SetInt(const std::string &name, int value) const {
 void Shader::SetFloat(const std::string &name, float value) const {
   glUniform1f(glGetUniformLocation(id_, name.c_str()), value);
 }
-void Shader::SetMat4f(const std::string &name, GLfloat *value) const {
+void Shader::SetMat4f(const std::string &name, const glm::mat4 &value) const {
   glUniformMatrix4fv(glGetUniformLocation(id_, name.c_str()), 1, GL_FALSE,
-                     value);
+                     glm::value_ptr(value));
 }
 void Shader::CheckCompileErrors(unsigned int shader, std::string type) {
   int success;
@@ -95,6 +96,7 @@ void Shader::CheckCompileErrors(unsigned int shader, std::string type) {
     }
   }
 }
-void Shader::SetVec3(const std::string &name, GLfloat *value) const {
-  glUniform3fv(glGetUniformLocation(id_, name.c_str()),1,value);
+void Shader::SetVec3(const std::string &name, const glm::vec3 &value) const {
+  glUniform3fv(glGetUniformLocation(id_, name.c_str()), 1,
+               glm::value_ptr(value));
 }
