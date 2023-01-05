@@ -95,3 +95,6 @@ void Shader::CheckCompileErrors(unsigned int shader, std::string type) {
     }
   }
 }
+void Shader::SetVec3(const std::string &name, GLfloat *value) const {
+  glUniform3fv(glGetUniformLocation(id_, name.c_str()),1,value);
+}

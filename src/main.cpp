@@ -30,6 +30,8 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 
 Camera camera(glm::vec3(0, 0, 3));
 
+glm::vec3 light_pos(1.2f, 1.f, 2.f);
+
 int main() {
 
   glfwInit();
@@ -125,9 +127,9 @@ int main() {
   glBindVertexArray(light_vao);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
   glBindVertexArray(0);
 
-  Shader shader("shaders/1/shader.vs", "shaders/1/shader.fs");
   stbi_set_flip_vertically_on_load(true);
   int img_width, img_height, img_channels;
   unsigned char *img_data =
@@ -171,10 +173,8 @@ int main() {
   glGenerateMipmap(GL_TEXTURE_2D);
   stbi_image_free(img_data1);
 
-  shader.Use();
-  shader.SetInt("ourTexture", 0);
-  shader.SetInt("ourTexture1", 1);
-
+  Shader obj_shader("shaders/2/shader.vert", "shaders/2/shader.frag");
+  Shader light_shader("shaders/2/shader.vert", "shaders/2/light.frag");
   glm::vec3 cubePositions[] = {
       glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
       glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
@@ -182,6 +182,8 @@ int main() {
       glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
       glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)};
 
+  glm::vec3 obj_color(1, 0.5, 0.31f);
+  glm::vec3 light_color(1.f, 1.f, 1.f);
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     process_input(window);
@@ -204,37 +206,44 @@ int main() {
         glm::perspective(glm::radians(camera.Zoom),
                          float(screen_width) / screen_height, 0.1f, 100.0f);
 
-    float time_value = glfwGetTime();
-
     glClearColor(0.2, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    shader.Use();
-    // shader.SetMat4f("model", glm::value_ptr(model));
-    shader.SetMat4f("view", glm::value_ptr(view));
-    shader.SetMat4f("projection", glm::value_ptr(projection));
     // shader.SetFloat("ti", green);
-    glActiveTexture(GL_TEXTURE0); // 在绑定纹理之前先激活纹理单元
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    glBindVertexArray(VAO); //
+    //    glActiveTexture(GL_TEXTURE0); // 在绑定纹理之前先激活纹理单元
+    //    glBindTexture(GL_TEXTURE_2D, texture);
+    //    glActiveTexture(GL_TEXTURE1);
+    //    glBindTexture(GL_TEXTURE_2D, texture1);
 
     {
-      for (unsigned int i = 0; i < 10; i++) {
-        glm::mat4 model(1.f);
-        model = glm::translate(model, cubePositions[i]);
-        float angle = 20.0f * i;
-        model = glm::rotate(model, float(glfwGetTime()),
-                            glm::vec3(1.0f, 0.3f, 0.5f));
-        shader.SetMat4f("model", glm::value_ptr(model));
+      glBindVertexArray(VAO); //
+      obj_shader.Use();
+      // shader.SetMat4f("model", glm::value_ptr(model));
+      obj_shader.SetMat4f("view", glm::value_ptr(view));
+      obj_shader.SetMat4f("projection", glm::value_ptr(projection));
+      glm::mat4 model(1.f);
+      obj_shader.SetMat4f("model", glm::value_ptr(model));
+      obj_shader.SetVec3("objectColor", glm::value_ptr(obj_color));
+      obj_shader.SetVec3("lightColor", glm::value_ptr(light_color));
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+      glBindVertexArray(0);
+    }
 
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-      }
+    {
+      glBindVertexArray(light_vao);
+      light_shader.Use();
+      light_shader.SetMat4f("view", glm::value_ptr(view));
+      light_shader.SetMat4f("projection", glm::value_ptr(projection));
+
+      auto model = glm::mat4(1.f);
+      model = glm::translate(model, light_pos);
+      model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+      light_shader.SetMat4f("model", glm::value_ptr(model));
+      model = glm::scale(model, glm::vec3(0.2f));
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+      glBindVertexArray(0);
     }
     // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    glBindVertexArray(0);
 
     ImGui::Begin("Demo window");
     ImGui::Button("Hello!");
