@@ -33,7 +33,7 @@ glm::vec3 light_pos(1.2f, 1.f, 2.f);
 int main() {
 
   glfwInit();
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
@@ -50,6 +50,8 @@ int main() {
   glViewport(0, 0, 800, 800);
   glfwSetFramebufferSizeCallback(window, frame_buffer_size_callback);
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO &io = ImGui::GetIO();
@@ -96,14 +98,20 @@ int main() {
       1.0f,  0.0f,  -0.5f, 0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
       -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f,  1.0f};
 
-  unsigned int indices[] = {
-      // 注意索引从0开始!
-      // 此例的索引(0,1,2,3)就是顶点数组vertices的下标，
-      // 这样可以由下标代表顶点组合成矩形
+  float gird_plane[] = {1,  1,  0, -1, -1, 0, -1, 1,  0,
+                        -1, -1, 0, 1,  1,  0, 1,  -1, 0};
 
-      0, 1, 3, // 第一个三角形
-      1, 2, 3  // 第二个三角形
-  };
+  unsigned int grid_plane_vao;
+  glGenVertexArrays(1, &grid_plane_vao);
+  glBindVertexArray(grid_plane_vao);
+  unsigned int grid_plane_vbo;
+  glGenBuffers(1, &grid_plane_vbo);
+
+  glBindBuffer(GL_ARRAY_BUFFER, grid_plane_vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(gird_plane), gird_plane, GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
+  glBindVertexArray(0);
 
   unsigned int VAO;
   glGenVertexArrays(1, &VAO);
@@ -130,12 +138,11 @@ int main() {
   glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                         (void *)(6 * sizeof(float)));
   glEnableVertexAttribArray(2);
-
-
+  glBindVertexArray(0);
 
   unsigned int diff_tex = loadTexture("img/container2.png");
   unsigned int spec_tex = loadTexture("img/container2_specular.png");
-  unsigned  int emis_tex = loadTexture("img/matrix.jpg");
+  unsigned int emis_tex = loadTexture("img/matrix.jpg");
 
   unsigned int light_vao;
   glGenVertexArrays(1, &light_vao);
@@ -145,9 +152,9 @@ int main() {
   glEnableVertexAttribArray(0);
   glBindVertexArray(0);
 
-
   Shader obj_shader("shaders/2/shader.vert", "shaders/2/shader.frag");
   Shader light_shader("shaders/2/shader.vert", "shaders/2/light.frag");
+  Shader plane_shader("shaders/2/plane.vert", "shaders/2/plane.frag");
   glm::vec3 cubePositions[] = {
       glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
       glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
@@ -172,8 +179,6 @@ int main() {
     // glm::mat4 model(1.0);
     // model = glm::rotate(model, float(glfwGetTime()), glm::vec3(1., 0., 0.));
 
-    glm::mat4 view(1.0);
-    view = camera.GetViewMatrix();
     glm::mat4 projection;
     projection =
         glm::perspective(glm::radians(camera.Zoom),
@@ -191,11 +196,11 @@ int main() {
     float light_pos_z = 10 * sin(glfwGetTime());
     float light_pos_x = 10 * cos(glfwGetTime());
     light_pos = glm::vec3(light_pos_x, 1.f, light_pos_z);
+
     {
       glBindVertexArray(VAO); //
       obj_shader.Use();
-      // shader.SetMat4f("model", glm::value_ptr(model));
-      obj_shader.SetMat4f("view", view);
+      obj_shader.SetMat4f("view", camera.GetViewMatrix());
       obj_shader.SetMat4f("projection", projection);
       glm::mat4 model(1.f);
       obj_shader.SetMat4f("model", model);
@@ -216,8 +221,8 @@ int main() {
       obj_shader.SetInt("material.diffuse", 0);
       obj_shader.SetInt("material.specular", 1);
       obj_shader.SetInt("material.emission", 2);
-      obj_shader.SetFloat("emission_strength",sin(glfwGetTime())+1.f);
-      obj_shader.SetFloat("matrix_move",glfwGetTime());
+      obj_shader.SetFloat("emission_strength", sin(glfwGetTime()) + 1.f);
+      obj_shader.SetFloat("matrix_move", glfwGetTime());
 
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, diff_tex);
@@ -233,9 +238,20 @@ int main() {
     }
 
     {
+      glBindVertexArray(grid_plane_vao);
+      plane_shader.Use();
+      plane_shader.SetMat4f("view", camera.GetViewMatrix());
+      plane_shader.SetMat4f("projection", projection);
+      plane_shader.SetMat4f("inv_view", glm::inverse(camera.GetViewMatrix()));
+      plane_shader.SetMat4f("inv_proj", glm::inverse(projection));
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+      glBindVertexArray(0);
+    }
+
+    {
       glBindVertexArray(light_vao);
       light_shader.Use();
-      light_shader.SetMat4f("view", view);
+      light_shader.SetMat4f("view", camera.GetViewMatrix());
       light_shader.SetMat4f("projection", projection);
 
       auto model = glm::mat4(1.f);
@@ -246,7 +262,6 @@ int main() {
       glDrawArrays(GL_TRIANGLES, 0, 36);
       glBindVertexArray(0);
     }
-    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     ImGui::Begin("Demo window");
     ImGui::Button("Hello!");
