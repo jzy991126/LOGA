@@ -3,6 +3,8 @@
 #include <iostream>
 #include "shader.h"
 #include "camera.h"
+#include "mesh.h"
+#include "model.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
