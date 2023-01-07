@@ -62,60 +62,11 @@ int main() {
   ImGui_ImplOpenGL3_Init();
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
-  float vertices[] = {
-      // positions          // normals           // texture coords
-      -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,  0.5f,  -0.5f,
-      -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f,  0.0f,  0.5f,  0.5f,  -0.5f, 0.0f,
-      0.0f,  -1.0f, 1.0f,  1.0f,  0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f,
-      1.0f,  1.0f,  -0.5f, 0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  1.0f,
-      -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,
 
-      -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,  0.5f,  -0.5f,
-      0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,
-      0.0f,  1.0f,  1.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-      1.0f,  1.0f,  -0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-      -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-
-      -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,
-      -0.5f, -1.0f, 0.0f,  0.0f,  1.0f,  1.0f,  -0.5f, -0.5f, -0.5f, -1.0f,
-      0.0f,  0.0f,  0.0f,  1.0f,  -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,
-      0.0f,  1.0f,  -0.5f, -0.5f, 0.5f,  -1.0f, 0.0f,  0.0f,  0.0f,  0.0f,
-      -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
-
-      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,  0.5f,  0.5f,
-      -0.5f, 1.0f,  0.0f,  0.0f,  1.0f,  1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,
-      0.0f,  0.0f,  0.0f,  1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,
-      0.0f,  1.0f,  0.5f,  -0.5f, 0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-      -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.5f,  -0.5f,
-      -0.5f, 0.0f,  -1.0f, 0.0f,  1.0f,  1.0f,  0.5f,  -0.5f, 0.5f,  0.0f,
-      -1.0f, 0.0f,  1.0f,  0.0f,  0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,
-      1.0f,  0.0f,  -0.5f, -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  0.0f,  0.0f,
-      -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f,  1.0f,
-
-      -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f,  1.0f,  0.5f,  0.5f,
-      -0.5f, 0.0f,  1.0f,  0.0f,  1.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,
-      1.0f,  0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-      1.0f,  0.0f,  -0.5f, 0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-      -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f,  1.0f};
 
   float gird_plane[] = {-1, 0, -1, 1,  0, -1, 1,  0, 1,
                         1,  0, 1,  -1, 0, 1,  -1, 0, -1};
 
-  glm::vec3 cubePositions[] = {
-      glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
-      glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
-      glm::vec3(2.4f, -0.4f, -3.5f),  glm::vec3(-1.7f, 3.0f, -7.5f),
-      glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
-      glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)};
-
-  glm::vec3 pointLightPositions[] = {
-      glm::vec3( 0.7f,  0.2f,  2.0f),
-      glm::vec3( 2.3f, -3.3f, -4.0f),
-      glm::vec3(-4.0f,  2.0f, -12.0f),
-      glm::vec3( 0.0f,  0.0f, -3.0f)
-  };
 
   unsigned int grid_plane_vao;
   glGenVertexArrays(1, &grid_plane_vao);
@@ -128,53 +79,9 @@ int main() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
   glBindVertexArray(0);
-
-  unsigned int VAO;
-  glGenVertexArrays(1, &VAO);
-  glBindVertexArray(VAO);
-
-  unsigned int VBO;
-  glGenBuffers(1, &VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-  // unsigned int EBO;
-  // glGenBuffers(1, &EBO);
-  // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-  //              GL_STATIC_DRAW);
-
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(0);
-
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                        (void *)(3 * sizeof(float)));
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                        (void *)(6 * sizeof(float)));
-  glEnableVertexAttribArray(2);
-  glBindVertexArray(0);
-
-  unsigned int diff_tex = loadTexture("img/container2.png");
-  unsigned int spec_tex = loadTexture("img/container2_specular.png");
-  unsigned int emis_tex = loadTexture("img/matrix.jpg");
-  unsigned int smile_tex = loadTexture("img/miku.jpg");
-
-  unsigned int light_vao;
-  glGenVertexArrays(1, &light_vao);
-  glBindVertexArray(light_vao);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(0);
-  glBindVertexArray(0);
-
-  Shader obj_shader("shaders/2/shader.vert", "shaders/2/shader.frag");
-  Shader light_shader("shaders/2/shader.vert", "shaders/2/light.frag");
   Shader plane_shader("shaders/2/plane.vert", "shaders/2/plane.frag");
 
-  glm::vec3 obj_color(1, 0.5, 0.31f);
-  glm::vec3 light_color(1.f, 1.f, 1.f);
+
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     process_input(window);
@@ -198,141 +105,8 @@ int main() {
     glClearColor(0.2, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // shader.SetFloat("ti", green);
-    //    glActiveTexture(GL_TEXTURE0); // 在绑定纹理之前先激活纹理单元
-    //    glBindTexture(GL_TEXTURE_2D, texture);
-    //    glActiveTexture(GL_TEXTURE1);
-    //    glBindTexture(GL_TEXTURE_2D, texture1);
-
-    //    float light_pos_z = 10 * sin(glfwGetTime());
-    //    float light_pos_x = 10 * cos(glfwGetTime());
-    //    light_pos = glm::vec3(light_pos_x, 1.f, light_pos_z);
-
-    {
-      glBindVertexArray(VAO); //
-      obj_shader.Use();
-      obj_shader.SetMat4f("view", camera.GetViewMatrix());
-      obj_shader.SetMat4f("projection", projection);
-      obj_shader.SetVec3("objectColor", obj_color);
-      obj_shader.SetVec3("lightColor", light_color);
-      obj_shader.SetVec3("view_pos", camera.Position);
-      obj_shader.SetVec3("material.ambient",
-                         glm::vec3(0.19225, 0.19225, 0.19225));
-      obj_shader.SetVec3("material.specular",
-                         glm::vec3(0.508273, 0.508273, 0.508273));
-      obj_shader.SetFloat("material.shininess", 0.4 * 128);
-      obj_shader.SetVec3("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
-      //      obj_shader.SetVec3(
-      //          "light.diffuse",
-      //          glm::vec3(0.5f, 0.5f, 0.5f)); // 将光照调暗了一些以搭配场景
-      obj_shader.SetInt("light.diffuse", 3);
-      obj_shader.SetVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
-      obj_shader.SetVec3("light.position", light_pos);
-      obj_shader.SetInt("material.diffuse", 0);
-      obj_shader.SetInt("material.specular", 1);
-      obj_shader.SetInt("material.emission", 2);
-      obj_shader.SetFloat("emission_strength", sin(glfwGetTime()) + 1.f);
-      obj_shader.SetFloat("matrix_move", glfwGetTime());
-      obj_shader.SetFloat("light.constant", 1.0f);
-      obj_shader.SetFloat("light.linear", 0.09f);
-      obj_shader.SetFloat("light.quadratic", 0.032f);
-      obj_shader.SetVec2("reslotion", glm::vec2(screen_width, screen_height));
-
-      obj_shader.SetVec3("light.position", camera.Position);
-      obj_shader.SetVec3("light.direction", camera.Front);
-      obj_shader.SetFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
-      obj_shader.SetFloat("light.outerCutOff", glm::cos(glm::radians(17.5)));
 
 
-      obj_shader.SetVec3("dirLight.direction", glm::vec3(-0.2f, -1.0f, -0.3f));
-      obj_shader.SetVec3("dirLight.ambient", glm::vec3(0.05f, 0.05f, 0.05f));
-      obj_shader.SetVec3("dirLight.diffuse", glm::vec3(0.4f, 0.4f, 0.4f));
-      obj_shader.SetVec3("dirLight.specular", glm::vec3(0.5f, 0.5f, 0.5f));
-      // point light 1
-      obj_shader.SetVec3("pointLights[0].position", pointLightPositions[0]);
-      obj_shader.SetVec3("pointLights[0].ambient", glm::vec3(0.05f, 0.05f, 0.05f));
-      obj_shader.SetVec3("pointLights[0].diffuse", glm::vec3(0.8f, 0.8f, 0.8f));
-      obj_shader.SetVec3("pointLights[0].specular", glm::vec3(1.0f, 1.0f, 1.0f));
-      obj_shader.SetFloat("pointLights[0].constant", 1.0f);
-      obj_shader.SetFloat("pointLights[0].linear", 0.09f);
-      obj_shader.SetFloat("pointLights[0].quadratic", 0.032f);
-      // point light 2
-      obj_shader.SetVec3("pointLights[1].position", pointLightPositions[1]);
-      obj_shader.SetVec3("pointLights[1].ambient", glm::vec3(0.05f, 0.05f, 0.05f));
-      obj_shader.SetVec3("pointLights[1].diffuse", glm::vec3(0.8f, 0.8f, 0.8f));
-      obj_shader.SetVec3("pointLights[1].specular", glm::vec3(1.0f, 1.0f, 1.0f));
-      obj_shader.SetFloat("pointLights[1].constant", 1.0f);
-      obj_shader.SetFloat("pointLights[1].linear", 0.09f);
-      obj_shader.SetFloat("pointLights[1].quadratic", 0.032f);
-      // point light 3
-      obj_shader.SetVec3("pointLights[2].position", pointLightPositions[2]);
-      obj_shader.SetVec3("pointLights[2].ambient", glm::vec3(0.05f, 0.05f, 0.05f));
-      obj_shader.SetVec3("pointLights[2].diffuse", glm::vec3(0.8f, 0.8f, 0.8f));
-      obj_shader.SetVec3("pointLights[2].specular", glm::vec3(1.0f, 1.0f, 1.0f));
-      obj_shader.SetFloat("pointLights[2].constant", 1.0f);
-      obj_shader.SetFloat("pointLights[2].linear", 0.09f);
-      obj_shader.SetFloat("pointLights[2].quadratic", 0.032f);
-      // point light 4
-      obj_shader.SetVec3("pointLights[3].position", pointLightPositions[3]);
-      obj_shader.SetVec3("pointLights[3].ambient", glm::vec3(0.05f, 0.05f, 0.05f));
-      obj_shader.SetVec3("pointLights[3].diffuse", glm::vec3(0.8f, 0.8f, 0.8f));
-      obj_shader.SetVec3("pointLights[3].specular", glm::vec3(1.0f, 1.0f, 1.0f));
-      obj_shader.SetFloat("pointLights[3].constant", 1.0f);
-      obj_shader.SetFloat("pointLights[3].linear", 0.09f);
-      obj_shader.SetFloat("pointLights[3].quadratic", 0.032f);
-      // spotLight
-      obj_shader.SetVec3("spotLight.position", camera.Position);
-      obj_shader.SetVec3("spotLight.direction", camera.Front);
-      obj_shader.SetVec3("spotLight.ambient", glm::vec3(0.0f, 0.0f, 0.0f));
-      obj_shader.SetVec3("spotLight.diffuse", glm::vec3(1.0f, 1.0f, 1.0f));
-      obj_shader.SetVec3("spotLight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
-      obj_shader.SetFloat("spotLight.constant", 1.0f);
-      obj_shader.SetFloat("spotLight.linear", 0.09f);
-      obj_shader.SetFloat("spotLight.quadratic", 0.032f);
-      obj_shader.SetFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-      obj_shader.SetFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));   
-
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, diff_tex);
-
-      glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D, spec_tex);
-
-      glActiveTexture(GL_TEXTURE2);
-      glBindTexture(GL_TEXTURE_2D, emis_tex);
-
-      glActiveTexture(GL_TEXTURE3);
-      glBindTexture(GL_TEXTURE_2D, smile_tex);
-
-      for (unsigned int i = 0; i < 10; i++) {
-        glm::mat4 model(1.f);
-        model = glm::translate(model, cubePositions[i]);
-        float angle = 20.0f * i;
-        model = glm::rotate(model, glm::radians(angle),
-                            glm::vec3(1.0f, 0.3f, 0.5f));
-        obj_shader.SetMat4f("model", model);
-
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-      }
-
-      //      glDrawArrays(GL_TRIANGLES, 0, 36);
-      glBindVertexArray(0);
-    }
-
-    {
-      glBindVertexArray(light_vao);
-      light_shader.Use();
-      light_shader.SetMat4f("view", camera.GetViewMatrix());
-      light_shader.SetMat4f("projection", projection);
-
-      auto model = glm::mat4(1.f);
-      model = glm::translate(model, light_pos);
-      model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-      light_shader.SetMat4f("model", model);
-      model = glm::scale(model, glm::vec3(0.2f));
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-      glBindVertexArray(0);
-    }
 
     {
       glBindVertexArray(grid_plane_vao);
