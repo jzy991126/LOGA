@@ -63,10 +63,8 @@ int main() {
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
 
-
   float gird_plane[] = {-1, 0, -1, 1,  0, -1, 1,  0, 1,
                         1,  0, 1,  -1, 0, 1,  -1, 0, -1};
-
 
   unsigned int grid_plane_vao;
   glGenVertexArrays(1, &grid_plane_vao);
@@ -81,6 +79,8 @@ int main() {
   glBindVertexArray(0);
   Shader plane_shader("shaders/2/plane.vert", "shaders/2/plane.frag");
 
+  Model nanosuit("model/nanosuit/nanosuit.obj");
+  Shader model_shader("shaders/3/model.vert", "shaders/3/model.frag");
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -101,12 +101,20 @@ int main() {
     projection =
         glm::perspective(glm::radians(camera.Zoom),
                          float(screen_width) / screen_height, 0.1f, 100.0f);
+    glm::mat4 model(1.0);
 
     glClearColor(0.2, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    {
+      model_shader.Use();
+      model_shader.SetMat4f("projection", projection);
+      model_shader.SetMat4f("view", camera.GetViewMatrix());
+      model_shader.SetMat4f("model", model);
+      nanosuit.Draw(model_shader);
+    }
 
-
+    nanosuit.Draw(model_shader);
 
     {
       glBindVertexArray(grid_plane_vao);

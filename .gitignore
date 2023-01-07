@@ -7,6 +7,7 @@ img/
 cmake-build-debug/
 bin/
 .idea/
+model/
 
 # MacOS Cache
 .DS_Store
