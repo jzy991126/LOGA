@@ -10,10 +10,14 @@ struct Material {
 
 struct Light {
     vec3 position;
-
+    //vec3 direction;
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 
@@ -57,7 +61,10 @@ void main()
 
     vec3 emission = texture(material.emission, vec2(TexCoords.x, TexCoords.y + matrix_move)).xyz * emission_strength;
 
-    vec3 res = (specualar + ambient + diffuse + emission);
+    float dist = length(light.position - FragPos);
+    float attenuation = 1.0 / (light.constant + light.linear * dist + light.quadratic * (dist * dist));
+
+    vec3 res = (specualar + ambient + diffuse) * attenuation;
 
 
     FragColor = vec4(res, 1.0);

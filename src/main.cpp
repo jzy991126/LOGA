@@ -26,7 +26,7 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 unsigned int loadTexture(char const *path);
 
-Camera camera(glm::vec3(0, 0, 3));
+Camera camera(glm::vec3(0, 1, 3));
 
 glm::vec3 light_pos(1.2f, 1.f, 2.f);
 
@@ -98,8 +98,15 @@ int main() {
       1.0f,  0.0f,  -0.5f, 0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
       -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f,  1.0f};
 
-  float gird_plane[] = {1,  1,  0, -1, -1, 0, -1, 1,  0,
-                        -1, -1, 0, 1,  1,  0, 1,  -1, 0};
+  float gird_plane[] = {-1,  0,  -1, 1, 0, -1, 1, 0,  1,
+                        1, 0, 1, -1,  0,  1, -1,  0, -1};
+
+  glm::vec3 cubePositions[] = {
+      glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
+      glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
+      glm::vec3(2.4f, -0.4f, -3.5f),  glm::vec3(-1.7f, 3.0f, -7.5f),
+      glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
+      glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)};
 
   unsigned int grid_plane_vao;
   glGenVertexArrays(1, &grid_plane_vao);
@@ -155,12 +162,6 @@ int main() {
   Shader obj_shader("shaders/2/shader.vert", "shaders/2/shader.frag");
   Shader light_shader("shaders/2/shader.vert", "shaders/2/light.frag");
   Shader plane_shader("shaders/2/plane.vert", "shaders/2/plane.frag");
-  glm::vec3 cubePositions[] = {
-      glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
-      glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
-      glm::vec3(2.4f, -0.4f, -3.5f),  glm::vec3(-1.7f, 3.0f, -7.5f),
-      glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
-      glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)};
 
   glm::vec3 obj_color(1, 0.5, 0.31f);
   glm::vec3 light_color(1.f, 1.f, 1.f);
@@ -193,17 +194,15 @@ int main() {
     //    glActiveTexture(GL_TEXTURE1);
     //    glBindTexture(GL_TEXTURE_2D, texture1);
 
-    float light_pos_z = 10 * sin(glfwGetTime());
-    float light_pos_x = 10 * cos(glfwGetTime());
-    light_pos = glm::vec3(light_pos_x, 1.f, light_pos_z);
+    //    float light_pos_z = 10 * sin(glfwGetTime());
+    //    float light_pos_x = 10 * cos(glfwGetTime());
+    //    light_pos = glm::vec3(light_pos_x, 1.f, light_pos_z);
 
     {
       glBindVertexArray(VAO); //
       obj_shader.Use();
       obj_shader.SetMat4f("view", camera.GetViewMatrix());
       obj_shader.SetMat4f("projection", projection);
-      glm::mat4 model(1.f);
-      obj_shader.SetMat4f("model", model);
       obj_shader.SetVec3("objectColor", obj_color);
       obj_shader.SetVec3("lightColor", light_color);
       obj_shader.SetVec3("view_pos", camera.Position);
@@ -223,6 +222,9 @@ int main() {
       obj_shader.SetInt("material.emission", 2);
       obj_shader.SetFloat("emission_strength", sin(glfwGetTime()) + 1.f);
       obj_shader.SetFloat("matrix_move", glfwGetTime());
+      obj_shader.SetFloat("light.constant", 1.0f);
+      obj_shader.SetFloat("light.linear", 0.09f);
+      obj_shader.SetFloat("light.quadratic", 0.032f);
 
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, diff_tex);
@@ -233,6 +235,34 @@ int main() {
       glActiveTexture(GL_TEXTURE2);
       glBindTexture(GL_TEXTURE_2D, emis_tex);
 
+      for (unsigned int i = 0; i < 10; i++) {
+        glm::mat4 model(1.f);
+        model = glm::translate(model, cubePositions[i]);
+        float angle = 20.0f * i;
+        model = glm::rotate(model, glm::radians(angle),
+                            glm::vec3(1.0f, 0.3f, 0.5f));
+        obj_shader.SetMat4f("model", model);
+
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+      }
+
+      //      glDrawArrays(GL_TRIANGLES, 0, 36);
+      glBindVertexArray(0);
+    }
+
+    {
+      glBindVertexArray(light_vao);
+      light_shader.Use();
+      light_shader.SetMat4f("view", camera.GetViewMatrix());
+      light_shader.SetMat4f("projection", projection);
+
+
+
+      auto model = glm::mat4(1.f);
+      model = glm::translate(model, light_pos);
+      model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+      light_shader.SetMat4f("model", model);
+      model = glm::scale(model, glm::vec3(0.2f));
       glDrawArrays(GL_TRIANGLES, 0, 36);
       glBindVertexArray(0);
     }
@@ -245,21 +275,6 @@ int main() {
       plane_shader.SetMat4f("inv_view", glm::inverse(camera.GetViewMatrix()));
       plane_shader.SetMat4f("inv_proj", glm::inverse(projection));
       glDrawArrays(GL_TRIANGLES, 0, 6);
-      glBindVertexArray(0);
-    }
-
-    {
-      glBindVertexArray(light_vao);
-      light_shader.Use();
-      light_shader.SetMat4f("view", camera.GetViewMatrix());
-      light_shader.SetMat4f("projection", projection);
-
-      auto model = glm::mat4(1.f);
-      model = glm::translate(model, light_pos);
-      model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-      light_shader.SetMat4f("model", model);
-      model = glm::scale(model, glm::vec3(0.2f));
-      glDrawArrays(GL_TRIANGLES, 0, 36);
       glBindVertexArray(0);
     }
 
