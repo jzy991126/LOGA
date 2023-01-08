@@ -149,9 +149,10 @@ int main() {
   unsigned int cubeTexture = loadTexture("img/marble.jpg");
   unsigned int floorTexture = loadTexture("img/metal.png");
   Shader cube_shader("shaders/4/cube.vert", "shaders/4/cube.frag");
+  Shader single_shader("shaders/4/cube.vert", "shaders/4/single.frag");
 
-  glStencilMask(0x00); // 每一位写入模板缓冲时都保持原样
-  //glStencilFunc(GL_EQUAL, 1, 0xFF);
+  //glStencilMask(0x00); // 每一位写入模板缓冲时都保持原样
+  // glStencilFunc(GL_EQUAL, 1, 0xFF);
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     process_input(window);
@@ -171,17 +172,35 @@ int main() {
     projection =
         glm::perspective(glm::radians(camera.Zoom),
                          float(screen_width) / screen_height, 0.1f, 100.0f);
-    glm::mat4 model(1.0);
+
 
     glClearColor(0.2, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+
     {
+      glEnable(GL_DEPTH_TEST);
+      glStencilOp(GL_KEEP,GL_KEEP,GL_REPLACE);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+      glStencilMask(0x00); // 记得保证我们在绘制地板的时候不会更新模板缓冲
+      glBindVertexArray(planeVAO);
+      glm::mat4 model(1.0);
       cube_shader.Use();
       cube_shader.SetMat4f("projection", projection);
       cube_shader.SetMat4f("view", camera.GetViewMatrix());
       cube_shader.SetMat4f("model", model);
+      glBindTexture(GL_TEXTURE_2D, floorTexture);
 
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+      glBindVertexArray(0);
+    }
+
+    {
+
+      glStencilFunc(GL_ALWAYS, 1, 0xFF);
+      glStencilMask(0xFF);
+      auto model = glm::mat4(1.0f);
       glBindVertexArray(cubeVAO);
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, cubeTexture);
@@ -193,11 +212,38 @@ int main() {
       cube_shader.SetMat4f("model", model);
       glDrawArrays(GL_TRIANGLES, 0, 36);
       // floor
-      glBindVertexArray(planeVAO);
-      glBindTexture(GL_TEXTURE_2D, floorTexture);
-      cube_shader.SetMat4f("model", glm::mat4(1.0f));
-      glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    }
+
+    {
+      glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+      glStencilMask(0x00);
+      //glDisable(GL_DEPTH_TEST);
+
+      glBindVertexArray(cubeVAO);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, cubeTexture);
+      float scale = 1.1f;
+
+      single_shader.Use();
+      single_shader.SetMat4f("projection", projection);
+      single_shader.SetMat4f("view", camera.GetViewMatrix());
+
+      auto model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+      model = glm::scale(model, glm::vec3(scale, scale, scale));
+      single_shader.SetMat4f("model", model);
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+      model = glm::scale(model, glm::vec3(scale, scale, scale));
+      single_shader.SetMat4f("model", model);
+      glDrawArrays(GL_TRIANGLES, 0, 36);
       glBindVertexArray(0);
+      glStencilMask(0xFF);
+      glStencilFunc(GL_ALWAYS, 0, 0xFF);
+      glEnable(GL_DEPTH_TEST);
     }
 
     {
