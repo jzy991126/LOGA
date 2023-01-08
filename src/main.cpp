@@ -52,6 +52,8 @@ int main() {
   glViewport(0, 0, 800, 800);
   glfwSetFramebufferSizeCallback(window, frame_buffer_size_callback);
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_STENCIL_TEST);
+  glDepthFunc(GL_LESS);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   IMGUI_CHECKVERSION();
@@ -79,9 +81,77 @@ int main() {
   glBindVertexArray(0);
   Shader plane_shader("shaders/2/plane.vert", "shaders/2/plane.frag");
 
-  Model nanosuit("model/nanosuit/nanosuit.obj");
-  Shader model_shader("shaders/3/model.vert", "shaders/3/model.frag");
+  float cubeVertices[] = {
+      // positions          // texture Coords
+      -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 0.0f,
+      0.5f,  0.5f,  -0.5f, 1.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
 
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+      -0.5f, 0.5f,  0.5f,  0.0f, 1.0f, -0.5f, -0.5f, 0.5f,  0.0f, 0.0f,
+
+      -0.5f, 0.5f,  0.5f,  1.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 1.0f, 1.0f,
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  0.5f,  1.0f, 0.0f,
+
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      0.5f,  -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 0.0f, 1.0f,
+      0.5f,  -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 1.0f,
+      0.5f,  -0.5f, 0.5f,  1.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+      -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+      -0.5f, 0.5f,  0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f};
+  float planeVertices[] = {
+      // positions          // texture Coords (note we set these higher than 1
+      // (together with GL_REPEAT as texture wrapping mode). this will cause the
+      // floor texture to repeat)
+      5.0f, -0.5f, 5.0f,  2.0f,  0.0f,  -5.0f, -0.5f, 5.0f,
+      0.0f, 0.0f,  -5.0f, -0.5f, -5.0f, 0.0f,  2.0f,
+
+      5.0f, -0.5f, 5.0f,  2.0f,  0.0f,  -5.0f, -0.5f, -5.0f,
+      0.0f, 2.0f,  5.0f,  -0.5f, -5.0f, 2.0f,  2.0f};
+
+  //  Model nanosuit("model/nanosuit/nanosuit.obj");
+  //  Shader model_shader("shaders/3/model.vert", "shaders/3/model.frag");
+
+  unsigned int cubeVAO, cubeVBO;
+  glGenVertexArrays(1, &cubeVAO);
+  glGenBuffers(1, &cubeVBO);
+  glBindVertexArray(cubeVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices,
+               GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                        (void *)(3 * sizeof(float)));
+  glBindVertexArray(0);
+  // plane VAO
+  unsigned int planeVAO, planeVBO;
+  glGenVertexArrays(1, &planeVAO);
+  glGenBuffers(1, &planeVBO);
+  glBindVertexArray(planeVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices,
+               GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                        (void *)(3 * sizeof(float)));
+  glBindVertexArray(0);
+  unsigned int cubeTexture = loadTexture("img/marble.jpg");
+  unsigned int floorTexture = loadTexture("img/metal.png");
+  Shader cube_shader("shaders/4/cube.vert", "shaders/4/cube.frag");
+
+  glStencilMask(0x00); // 每一位写入模板缓冲时都保持原样
+  //glStencilFunc(GL_EQUAL, 1, 0xFF);
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     process_input(window);
@@ -104,17 +174,39 @@ int main() {
     glm::mat4 model(1.0);
 
     glClearColor(0.2, 0.2, 0.2, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     {
-      model_shader.Use();
-      model_shader.SetMat4f("projection", projection);
-      model_shader.SetMat4f("view", camera.GetViewMatrix());
-      model_shader.SetMat4f("model", model);
-      nanosuit.Draw(model_shader);
+      cube_shader.Use();
+      cube_shader.SetMat4f("projection", projection);
+      cube_shader.SetMat4f("view", camera.GetViewMatrix());
+      cube_shader.SetMat4f("model", model);
+
+      glBindVertexArray(cubeVAO);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, cubeTexture);
+      model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+      cube_shader.SetMat4f("model", model);
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+      cube_shader.SetMat4f("model", model);
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+      // floor
+      glBindVertexArray(planeVAO);
+      glBindTexture(GL_TEXTURE_2D, floorTexture);
+      cube_shader.SetMat4f("model", glm::mat4(1.0f));
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+      glBindVertexArray(0);
     }
 
-    nanosuit.Draw(model_shader);
+    {
+        //      model_shader.Use();
+        //      model_shader.SetMat4f("projection", projection);
+        //      model_shader.SetMat4f("view", camera.GetViewMatrix());
+        //      model_shader.SetMat4f("model", model);
+        //      nanosuit.Draw(model_shader);
+    }
 
     {
       glBindVertexArray(grid_plane_vao);
