@@ -52,7 +52,7 @@ int main() {
   glViewport(0, 0, 800, 800);
   glfwSetFramebufferSizeCallback(window, frame_buffer_size_callback);
   glEnable(GL_DEPTH_TEST);
-  glEnable(GL_STENCIL_TEST);
+  // glEnable(GL_STENCIL_TEST);
   glDepthFunc(GL_LESS);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -119,6 +119,26 @@ int main() {
   //  Model nanosuit("model/nanosuit/nanosuit.obj");
   //  Shader model_shader("shaders/3/model.vert", "shaders/3/model.frag");
 
+  float transparentVertices[] = {
+      // positions         // texture Coords (swapped y coordinates because
+      // texture is flipped upside down)
+      0.0f, 0.5f, 0.0f, 0.0f,  0.0f, 0.0f, -0.5f, 0.0f,
+      0.0f, 1.0f, 1.0f, -0.5f, 0.0f, 1.0f, 1.0f,
+
+      0.0f, 0.5f, 0.0f, 0.0f,  0.0f, 1.0f, -0.5f, 0.0f,
+      1.0f, 1.0f, 1.0f, 0.5f,  0.0f, 1.0f, 0.0f};
+
+  vector<glm::vec3> windows{
+      glm::vec3(-1.5f, 0.0f, -0.48f), glm::vec3(1.5f, 0.0f, 0.51f),
+      glm::vec3(0.0f, 0.0f, 0.7f), glm::vec3(-0.3f, 0.0f, -2.3f),
+      glm::vec3(0.5f, 0.0f, -0.6f)};
+
+  std::map<float, glm::vec3> sorted;
+  for (unsigned int i = 0; i < windows.size(); i++) {
+    float distance = glm::length(camera.Position - windows[i]);
+    sorted[distance] = windows[i];
+  }
+
   unsigned int cubeVAO, cubeVBO;
   glGenVertexArrays(1, &cubeVAO);
   glGenBuffers(1, &cubeVBO);
@@ -146,13 +166,37 @@ int main() {
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                         (void *)(3 * sizeof(float)));
   glBindVertexArray(0);
+
+  unsigned int transparentVAO, transparentVBO;
+  glGenVertexArrays(1, &transparentVAO);
+  glGenBuffers(1, &transparentVBO);
+  glBindVertexArray(transparentVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices),
+               transparentVertices, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                        (void *)(3 * sizeof(float)));
+  glBindVertexArray(0);
+
+  vector<glm::vec3> vegetation;
+  vegetation.emplace_back(-1.5f, 0.0f, -0.48f);
+  vegetation.emplace_back(1.5f, 0.0f, 0.51f);
+  vegetation.emplace_back(0.0f, 0.0f, 0.7f);
+  vegetation.emplace_back(-0.3f, 0.0f, -2.3f);
+  vegetation.emplace_back(0.5f, 0.0f, -0.6f);
+
   unsigned int cubeTexture = loadTexture("img/marble.jpg");
   unsigned int floorTexture = loadTexture("img/metal.png");
+  unsigned int transparentTexture =
+      loadTexture("img/blending_transparent_window.png");
   Shader cube_shader("shaders/4/cube.vert", "shaders/4/cube.frag");
   Shader single_shader("shaders/4/cube.vert", "shaders/4/single.frag");
 
-  //glStencilMask(0x00); // 每一位写入模板缓冲时都保持原样
-  // glStencilFunc(GL_EQUAL, 1, 0xFF);
+  // glStencilMask(0x00); // 每一位写入模板缓冲时都保持原样
+  //  glStencilFunc(GL_EQUAL, 1, 0xFF);
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     process_input(window);
@@ -173,17 +217,16 @@ int main() {
         glm::perspective(glm::radians(camera.Zoom),
                          float(screen_width) / screen_height, 0.1f, 100.0f);
 
-
     glClearColor(0.2, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-
     {
       glEnable(GL_DEPTH_TEST);
-      glStencilOp(GL_KEEP,GL_KEEP,GL_REPLACE);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+      //      glStencilOp(GL_KEEP,GL_KEEP,GL_REPLACE);
+      //      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+      //      GL_STENCIL_BUFFER_BIT);
 
-      glStencilMask(0x00); // 记得保证我们在绘制地板的时候不会更新模板缓冲
+      // glStencilMask(0x00); // 记得保证我们在绘制地板的时候不会更新模板缓冲
       glBindVertexArray(planeVAO);
       glm::mat4 model(1.0);
       cube_shader.Use();
@@ -198,8 +241,8 @@ int main() {
 
     {
 
-      glStencilFunc(GL_ALWAYS, 1, 0xFF);
-      glStencilMask(0xFF);
+      //      glStencilFunc(GL_ALWAYS, 1, 0xFF);
+      //      glStencilMask(0xFF);
       auto model = glm::mat4(1.0f);
       glBindVertexArray(cubeVAO);
       glActiveTexture(GL_TEXTURE0);
@@ -212,38 +255,49 @@ int main() {
       cube_shader.SetMat4f("model", model);
       glDrawArrays(GL_TRIANGLES, 0, 36);
       // floor
-
     }
 
     {
-      glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-      glStencilMask(0x00);
-      //glDisable(GL_DEPTH_TEST);
+      glBindVertexArray(transparentVAO);
+      glBindTexture(GL_TEXTURE_2D, transparentTexture);
+      for (auto it = sorted.rbegin();
+           it != sorted.rend(); ++it) {
+        auto model = glm::mat4(1.0f);
+        model = glm::translate(model, it->second);
+        cube_shader.SetMat4f("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+      }
+    }
 
-      glBindVertexArray(cubeVAO);
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, cubeTexture);
-      float scale = 1.1f;
-
-      single_shader.Use();
-      single_shader.SetMat4f("projection", projection);
-      single_shader.SetMat4f("view", camera.GetViewMatrix());
-
-      auto model = glm::mat4(1.0f);
-      model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-      model = glm::scale(model, glm::vec3(scale, scale, scale));
-      single_shader.SetMat4f("model", model);
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-
-      model = glm::mat4(1.0f);
-      model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-      model = glm::scale(model, glm::vec3(scale, scale, scale));
-      single_shader.SetMat4f("model", model);
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-      glBindVertexArray(0);
-      glStencilMask(0xFF);
-      glStencilFunc(GL_ALWAYS, 0, 0xFF);
-      glEnable(GL_DEPTH_TEST);
+    {
+        //      glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        //      glStencilMask(0x00);
+        //      //glDisable(GL_DEPTH_TEST);
+        //
+        //      glBindVertexArray(cubeVAO);
+        //      glActiveTexture(GL_TEXTURE0);
+        //      glBindTexture(GL_TEXTURE_2D, cubeTexture);
+        //      float scale = 1.1f;
+        //
+        //      single_shader.Use();
+        //      single_shader.SetMat4f("projection", projection);
+        //      single_shader.SetMat4f("view", camera.GetViewMatrix());
+        //
+        //      auto model = glm::mat4(1.0f);
+        //      model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        //      model = glm::scale(model, glm::vec3(scale, scale, scale));
+        //      single_shader.SetMat4f("model", model);
+        //      glDrawArrays(GL_TRIANGLES, 0, 36);
+        //
+        //      model = glm::mat4(1.0f);
+        //      model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        //      model = glm::scale(model, glm::vec3(scale, scale, scale));
+        //      single_shader.SetMat4f("model", model);
+        //      glDrawArrays(GL_TRIANGLES, 0, 36);
+        //      glBindVertexArray(0);
+        //      glStencilMask(0xFF);
+        //      glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        //      glEnable(GL_DEPTH_TEST);
     }
 
     {
@@ -255,6 +309,7 @@ int main() {
     }
 
     {
+      // glDisable(GL_DEPTH_TEST);
       glBindVertexArray(grid_plane_vao);
       plane_shader.Use();
       plane_shader.SetMat4f("view", camera.GetViewMatrix());
@@ -263,6 +318,7 @@ int main() {
       plane_shader.SetMat4f("inv_proj", glm::inverse(projection));
       glDrawArrays(GL_TRIANGLES, 0, 6);
       glBindVertexArray(0);
+      // glEnable(GL_DEPTH_TEST);
     }
 
     ImGui::Begin("Demo window");
@@ -348,8 +404,15 @@ unsigned int loadTexture(char const *path) {
                  GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(
+        GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+        format == GL_RGBA
+            ? GL_CLAMP_TO_EDGE
+            : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent
+                          // semi-transparent borders. Due to interpolation it
+                          // takes texels from next repeat
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                    format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
                     GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
