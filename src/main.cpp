@@ -54,6 +54,7 @@ int main() {
   glEnable(GL_DEPTH_TEST);
   // glEnable(GL_STENCIL_TEST);
   glDepthFunc(GL_LESS);
+  // glEnable(GL_CULL_FACE);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   IMGUI_CHECKVERSION();
@@ -133,12 +134,26 @@ int main() {
       glm::vec3(0.0f, 0.0f, 0.7f), glm::vec3(-0.3f, 0.0f, -2.3f),
       glm::vec3(0.5f, 0.0f, -0.6f)};
 
+  float quadVertices[] = {// positions   // texCoords
+                          -1.0f, 1.0f, 0.0f, 1.0f,  -1.0f, -1.0f,
+                          0.0f,  0.0f, 1.0f, -1.0f, 1.0f,  0.0f,
+
+                          -1.0f, 1.0f, 0.0f, 1.0f,  1.0f,  -1.0f,
+                          1.0f,  0.0f, 1.0f, 1.0f,  1.0f,  1.0f};
+
+  float quadVertices1[] = {// positions   // texCoords
+                          0.5f, 1.0f, 0.0f, 1.0f,  0.5f, 0.5f,
+                          0.0f,  0.0f, 1.0f, 0.5f, 1.0f,  0.0f,
+
+                          0.5f, 1.0f, 0.0f, 1.0f,  1.0f,  0.5f,
+                          1.0f,  0.0f, 1.0f, 1.0f,  1.0f,  1.0f};
+
   std::map<float, glm::vec3> sorted;
   for (unsigned int i = 0; i < windows.size(); i++) {
     float distance = glm::length(camera.Position - windows[i]);
     sorted[distance] = windows[i];
   }
-
+  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   unsigned int cubeVAO, cubeVBO;
   glGenVertexArrays(1, &cubeVAO);
   glGenBuffers(1, &cubeVBO);
@@ -181,6 +196,65 @@ int main() {
                         (void *)(3 * sizeof(float)));
   glBindVertexArray(0);
 
+  unsigned int quadVAO, quadVBO;
+  glGenVertexArrays(1, &quadVAO);
+  glGenBuffers(1, &quadVBO);
+  glBindVertexArray(quadVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices,
+               GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                        (void *)(2 * sizeof(float)));
+  glBindVertexArray(0);
+
+
+  unsigned int quadVAO1, quadVBO1;
+  glGenVertexArrays(1, &quadVAO1);
+  glGenBuffers(1, &quadVBO1);
+  glBindVertexArray(quadVAO1);
+  glBindBuffer(GL_ARRAY_BUFFER, quadVBO1);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices1), quadVertices1,
+               GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                        (void *)(2 * sizeof(float)));
+  glBindVertexArray(0);
+
+
+  unsigned int fbo;
+  glGenFramebuffers(1, &fbo);
+  unsigned int fbo_texture;
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+  glGenTextures(1, &fbo_texture);
+  glBindTexture(GL_TEXTURE_2D, fbo_texture);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 800, 0, GL_RGB, GL_UNSIGNED_BYTE,
+               NULL);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                         fbo_texture, 0);
+
+  unsigned int rbo;
+  glGenRenderbuffers(1, &rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 800, 800);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                            GL_RENDERBUFFER, rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!"
+              << std::endl;
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
   vector<glm::vec3> vegetation;
   vegetation.emplace_back(-1.5f, 0.0f, -0.48f);
   vegetation.emplace_back(1.5f, 0.0f, 0.51f);
@@ -194,6 +268,7 @@ int main() {
       loadTexture("img/blending_transparent_window.png");
   Shader cube_shader("shaders/4/cube.vert", "shaders/4/cube.frag");
   Shader single_shader("shaders/4/cube.vert", "shaders/4/single.frag");
+  Shader fbo_shader("shaders/6/fbo.vert", "shaders/6/fbo.frag");
 
   // glStencilMask(0x00); // 每一位写入模板缓冲时都保持原样
   //  glStencilFunc(GL_EQUAL, 1, 0xFF);
@@ -217,8 +292,15 @@ int main() {
         glm::perspective(glm::radians(camera.Zoom),
                          float(screen_width) / screen_height, 0.1f, 100.0f);
 
-    glClearColor(0.2, 0.2, 0.2, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT |
+            GL_DEPTH_BUFFER_BIT); // 我们现在不使用模板缓冲
+
+    //    glClearColor(0.2, 0.2, 0.2, 1.0);
+    //    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+    //    GL_STENCIL_BUFFER_BIT);
 
     {
       glEnable(GL_DEPTH_TEST);
@@ -260,8 +342,7 @@ int main() {
     {
       glBindVertexArray(transparentVAO);
       glBindTexture(GL_TEXTURE_2D, transparentTexture);
-      for (auto it = sorted.rbegin();
-           it != sorted.rend(); ++it) {
+      for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
         auto model = glm::mat4(1.0f);
         model = glm::translate(model, it->second);
         cube_shader.SetMat4f("model", model);
@@ -319,6 +400,23 @@ int main() {
       glDrawArrays(GL_TRIANGLES, 0, 6);
       glBindVertexArray(0);
       // glEnable(GL_DEPTH_TEST);
+    }
+
+    {
+      glBindFramebuffer(GL_FRAMEBUFFER, 0); // 返回默认
+      glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT);
+
+      fbo_shader.Use();
+      glBindVertexArray(quadVAO);
+      glDisable(GL_DEPTH_TEST);
+      glBindTexture(GL_TEXTURE_2D, fbo_texture);
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+
+      glBindVertexArray(quadVAO1);
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
     }
 
     ImGui::Begin("Demo window");
