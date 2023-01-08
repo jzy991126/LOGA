@@ -21,6 +21,7 @@ float lastX = 400, lastY = 400;
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
 float lastFrame = 0.0f; // 上一帧的时间
 bool first_mouse = true;
+bool view_move = false;
 
 void frame_buffer_size_callback(GLFWwindow *window, int width, int height);
 void process_input(GLFWwindow *window);
@@ -28,6 +29,8 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 unsigned int loadTexture(char const *path);
 unsigned int loadCubemap(vector<std::string> faces);
+void mouse_button_callback(GLFWwindow *window, int button, int action,
+                           int mods);
 
 Camera camera(glm::vec3(0, 1, 3));
 
@@ -45,13 +48,14 @@ int main() {
 
   GLFWwindow *window = glfwCreateWindow(800, 800, "yang", nullptr, nullptr);
   glfwMakeContextCurrent(window);
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   glfwSetCursorPosCallback(window, mouse_callback);
 
   gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
   glViewport(0, 0, 800, 800);
   glfwSetFramebufferSizeCallback(window, frame_buffer_size_callback);
+  glfwSetMouseButtonCallback(window, mouse_button_callback);
   glEnable(GL_DEPTH_TEST);
   // glEnable(GL_STENCIL_TEST);
   glDepthFunc(GL_LESS);
@@ -481,9 +485,19 @@ void process_input(GLFWwindow *window) {
     camera.ProcessKeyboard(UP, deltaTime);
   if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
     camera.ProcessKeyboard(DOWN, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+    camera.MouseSensitivity = 0.2;
+    camera.MovementSpeed = 5.0;
+  }
+  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE) {
+    camera.MouseSensitivity = 0.1;
+    camera.MovementSpeed = 2.5;
+  }
 }
 
 void mouse_callback(GLFWwindow *window, double xposIn, double yposIn) {
+  if (!view_move)
+    return;
 
   auto xpos = static_cast<float>(xposIn);
   auto ypos = static_cast<float>(yposIn);
@@ -577,4 +591,14 @@ unsigned int loadCubemap(vector<std::string> faces) {
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
   return textureID;
+}
+
+void mouse_button_callback(GLFWwindow *window, int button, int action,
+                           int mods) {
+  if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS) {
+    first_mouse = true;
+    view_move = true;
+  }
+  if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_RELEASE)
+    view_move = false;
 }
