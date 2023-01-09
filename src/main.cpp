@@ -32,9 +32,9 @@ unsigned int loadCubemap(vector<std::string> faces);
 void mouse_button_callback(GLFWwindow *window, int button, int action,
                            int mods);
 
-Camera camera(glm::vec3(0, 1, 3));
+Camera camera(glm::vec3(0, 0, 3));
 
-glm::vec3 light_pos(1.2f, 1.f, 2.f);
+glm::vec3 light_pos(0, 0, 0);
 
 int main() {
 
@@ -85,67 +85,12 @@ int main() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
   glBindVertexArray(0);
-  Shader plane_shader("shaders/2/plane.vert", "shaders/2/plane.frag");
-
-  float cubeVertices[] = {
-      // positions          // normals
-      -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.5f,  -0.5f, -0.5f,
-      0.0f,  0.0f,  -1.0f, 0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f,
-      0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, -0.5f, 0.5f,  -0.5f,
-      0.0f,  0.0f,  -1.0f, -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f,
-
-      -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.5f,  -0.5f, 0.5f,
-      0.0f,  0.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-      0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  -0.5f, 0.5f,  0.5f,
-      0.0f,  0.0f,  1.0f,  -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,
-
-      -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  -0.5f, 0.5f,  -0.5f,
-      -1.0f, 0.0f,  0.0f,  -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,
-      -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,  -0.5f, -0.5f, 0.5f,
-      -1.0f, 0.0f,  0.0f,  -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,
-
-      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.5f,  0.5f,  -0.5f,
-      1.0f,  0.0f,  0.0f,  0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,
-      0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  0.5f,  -0.5f, 0.5f,
-      1.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-
-      -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.5f,  -0.5f, -0.5f,
-      0.0f,  -1.0f, 0.0f,  0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,
-      0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  -0.5f, -0.5f, 0.5f,
-      0.0f,  -1.0f, 0.0f,  -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,
-
-      -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  -0.5f,
-      0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-      0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,  0.5f,
-      0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f};
-  float planeVertices[] = {
-      // positions          // texture Coords (note we set these higher than 1
-      // (together with GL_REPEAT as texture wrapping mode). this will cause the
-      // floor texture to repeat)
-      5.0f, -0.5f, 5.0f,  2.0f,  0.0f,  -5.0f, -0.5f, 5.0f,
-      0.0f, 0.0f,  -5.0f, -0.5f, -5.0f, 0.0f,  2.0f,
-
-      5.0f, -0.5f, 5.0f,  2.0f,  0.0f,  -5.0f, -0.5f, -5.0f,
-      0.0f, 2.0f,  5.0f,  -0.5f, -5.0f, 2.0f,  2.0f};
+  Shader grid_plane_shader("shaders/2/plane.vert", "shaders/2/plane.frag");
 
   // Model nanosuit("model/nanosuit/nanosuit.obj");
   Model planet("model/planet/planet.obj");
   Model rock("model/rock/rock.obj");
   //   Shader model_shader("shaders/3/model.vert", "shaders/3/model.frag");
-
-  float transparentVertices[] = {
-      // positions         // texture Coords (swapped y coordinates because
-      // texture is flipped upside down)
-      0.0f, 0.5f, 0.0f, 0.0f,  0.0f, 0.0f, -0.5f, 0.0f,
-      0.0f, 1.0f, 1.0f, -0.5f, 0.0f, 1.0f, 1.0f,
-
-      0.0f, 0.5f, 0.0f, 0.0f,  0.0f, 1.0f, -0.5f, 0.0f,
-      1.0f, 1.0f, 1.0f, 0.5f,  0.0f, 1.0f, 0.0f};
-
-  vector<glm::vec3> windows{
-      glm::vec3(-1.5f, 0.0f, -0.48f), glm::vec3(1.5f, 0.0f, 0.51f),
-      glm::vec3(0.0f, 0.0f, 0.7f), glm::vec3(-0.3f, 0.0f, -2.3f),
-      glm::vec3(0.5f, 0.0f, -0.6f)};
 
   float quadVertices[] = {// positions   // texCoords
                           -1.0f, 1.0f, 0.0f, 1.0f,  -1.0f, -1.0f,
@@ -180,55 +125,35 @@ int main() {
       -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, -1.0f,
       1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f};
 
+  float planeVertices[] = {
+      // positions            // normals         // texcoords
+      10.0f,  -0.5f, 10.0f,  0.0f, 1.0f, 0.0f, 10.0f, 0.0f,
+      -10.0f, -0.5f, 10.0f,  0.0f, 1.0f, 0.0f, 0.0f,  0.0f,
+      -10.0f, -0.5f, -10.0f, 0.0f, 1.0f, 0.0f, 0.0f,  10.0f,
+
+      10.0f,  -0.5f, 10.0f,  0.0f, 1.0f, 0.0f, 10.0f, 0.0f,
+      -10.0f, -0.5f, -10.0f, 0.0f, 1.0f, 0.0f, 0.0f,  10.0f,
+      10.0f,  -0.5f, -10.0f, 0.0f, 1.0f, 0.0f, 10.0f, 10.0f};
+
   vector<std::string> faces{"right.jpg",  "left.jpg",  "top.jpg",
                             "bottom.jpg", "front.jpg", "back.jpg"};
+  unsigned int floor_tex = loadTexture("img/wood.png");
 
-  std::map<float, glm::vec3> sorted;
-  for (unsigned int i = 0; i < windows.size(); i++) {
-    float distance = glm::length(camera.Position - windows[i]);
-    sorted[distance] = windows[i];
-  }
-  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  unsigned int cubeVAO, cubeVBO;
-  glGenVertexArrays(1, &cubeVAO);
-  glGenBuffers(1, &cubeVBO);
-  glBindVertexArray(cubeVAO);
-  glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices,
+  unsigned int plane_vao, plane_vbo;
+  glGenVertexArrays(1, &plane_vao);
+  glGenBuffers(1, &plane_vbo);
+  glBindVertexArray(plane_vao);
+  glBindBuffer(GL_ARRAY_BUFFER, plane_vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices,
                GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                         (void *)(3 * sizeof(float)));
-  glBindVertexArray(0);
-  // plane VAO
-  unsigned int planeVAO, planeVBO;
-  glGenVertexArrays(1, &planeVAO);
-  glGenBuffers(1, &planeVBO);
-  glBindVertexArray(planeVAO);
-  glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices,
-               GL_STATIC_DRAW);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                        (void *)(3 * sizeof(float)));
-  glBindVertexArray(0);
-
-  unsigned int transparentVAO, transparentVBO;
-  glGenVertexArrays(1, &transparentVAO);
-  glGenBuffers(1, &transparentVBO);
-  glBindVertexArray(transparentVAO);
-  glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices),
-               transparentVertices, GL_STATIC_DRAW);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                        (void *)(3 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(6 * sizeof(float)));
   glBindVertexArray(0);
 
   unsigned int quadVAO, quadVBO;
@@ -299,116 +224,16 @@ int main() {
               << std::endl;
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  vector<glm::vec3> vegetation;
-  vegetation.emplace_back(-1.5f, 0.0f, -0.48f);
-  vegetation.emplace_back(1.5f, 0.0f, 0.51f);
-  vegetation.emplace_back(0.0f, 0.0f, 0.7f);
-  vegetation.emplace_back(-0.3f, 0.0f, -2.3f);
-  vegetation.emplace_back(0.5f, 0.0f, -0.6f);
-
-  unsigned int cubeTexture = loadTexture("img/marble.jpg");
-  unsigned int floorTexture = loadTexture("img/metal.png");
-  unsigned int transparentTexture =
-      loadTexture("img/blending_transparent_window.png");
-
   unsigned int cubemapTexture = loadCubemap(faces);
 
-  //  unsigned int cube_map_texture;
-  //  glGenTextures(1, &cube_map_texture);
-  //  glBindTexture(GL_TEXTURE_CUBE_MAP, cube_map_texture);
-
-  Shader cube_shader("shaders/4/cube.vert", "shaders/4/cube.frag");
-  Shader single_shader("shaders/4/cube.vert", "shaders/4/single.frag");
   Shader fbo_shader("shaders/6/fbo.vert", "shaders/6/fbo.frag");
   Shader skybox_shader("shaders/7/skymap.vert", "shaders/7/skymap.frag");
-  Shader geo_shader("shaders/8/geo.vert", "shaders/8/geo.frag",
-                    "shaders/8/geo.geom");
-  Shader model_shader("shaders/3/model.vert", "shaders/3/model.frag",
-                      "shaders/3/model.geom");
-  Shader normal_shader("shaders/3/normal.vert", "shaders/3/normal.frag",
-                       "shaders/3/normal.geom");
-  Shader instance_shader("shaders/3/instance.vert", "shaders/3/instance.frag");
+  Shader floor_shader("shaders/9/bp.vert", "shaders/9/bp.frag");
 
-  // glStencilMask(0x00); // 每一位写入模板缓冲时都保持原样
-  //  glStencilFunc(GL_EQUAL, 1, 0xFF);
+  floor_shader.Use();
+  floor_shader.SetInt("floorTexture", 0);
 
-  float geo_points[] = {
-      -0.5f, 0.5f,  1.0f, 0.0f, 0.0f, // 左上
-      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, // 右上
-      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, // 右下
-      -0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // 左下
-  };
-  unsigned int geo_vao, geo_vbo;
-  glGenVertexArrays(1, &geo_vao);
-  glGenBuffers(1, &geo_vbo);
-  glBindVertexArray(geo_vao);
-  glBindBuffer(GL_ARRAY_BUFFER, geo_vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(geo_points), geo_points, GL_STATIC_DRAW);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                        (void *)(2 * sizeof(float)));
-  glBindVertexArray(0);
-
-  unsigned int amount = 100000;
-  glm::mat4 *modelMatrices;
-  modelMatrices = new glm::mat4[amount];
-  srand(glfwGetTime()); // 初始化随机种子
-  float radius = 150.0;
-  float offset = 25.f;
-  for (unsigned int i = 0; i < amount; i++) {
-    glm::mat4 model(1.0);
-    // 1. 位移：分布在半径为 'radius' 的圆形上，偏移的范围是 [-offset, offset]
-    float angle = (float)i / (float)amount * 360.0f;
-    float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-    float x = sin(angle) * radius + displacement;
-    displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-    float y = displacement * 0.4f; // 让行星带的高度比x和z的宽度要小
-    displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-    float z = cos(angle) * radius + displacement;
-    model = glm::translate(model, glm::vec3(x, y, z));
-
-    // 2. 缩放：在 0.05 和 0.25f 之间缩放
-    float scale = (rand() % 20) / 100.0f + 0.05;
-    model = glm::scale(model, glm::vec3(scale));
-
-    // 3. 旋转：绕着一个（半）随机选择的旋转轴向量进行随机的旋转
-    float rotAngle = (rand() % 360);
-    model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
-
-    // 4. 添加到矩阵的数组中
-    modelMatrices[i] = model;
-  }
-
-  unsigned int buffer;
-  glGenBuffers(1, &buffer);
-  glBindBuffer(GL_ARRAY_BUFFER, buffer);
-  glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
-
-  for(unsigned int i = 0; i < rock.meshes.size(); i++)
-  {
-    unsigned int VAO = rock.meshes[i].VAO;
-    glBindVertexArray(VAO);
-    // 顶点属性
-    GLsizei vec4Size = sizeof(glm::vec4);
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(vec4Size));
-    glEnableVertexAttribArray(5);
-    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
-    glEnableVertexAttribArray(6);
-    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
-
-    glVertexAttribDivisor(3, 1);
-    glVertexAttribDivisor(4, 1);
-    glVertexAttribDivisor(5, 1);
-    glVertexAttribDivisor(6, 1);
-
-    glBindVertexArray(0);
-  }
-
+  bool use_blinn = false;
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -422,9 +247,6 @@ int main() {
     lastFrame = currentFrame;
     glfwSetScrollCallback(window, scroll_callback);
 
-    // glm::mat4 model(1.0);
-    // model = glm::rotate(model, float(glfwGetTime()), glm::vec3(1., 0., 0.));
-
     glm::mat4 projection;
     projection =
         glm::perspective(glm::radians(camera.Zoom),
@@ -437,96 +259,19 @@ int main() {
             GL_DEPTH_BUFFER_BIT); // 我们现在不使用模板缓冲
 
     {
-      model_shader.Use();
-      model_shader.SetFloat("time", glfwGetTime());
-      model_shader.SetMat4f("view", camera.GetViewMatrix());
-      model_shader.SetMat4f("projection", projection);
-      glm::mat4 model(1.0);
-      model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
-      model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
-      model_shader.SetMat4f("model", model);
-      planet.Draw(model_shader);
-    }
+      floor_shader.Use();
+      floor_shader.SetMat4f("projection", projection);
+      floor_shader.SetMat4f("view", camera.GetViewMatrix());
+      // set light uniforms
+      floor_shader.SetVec3("viewPos", camera.Position);
+      floor_shader.SetVec3("lightPos", light_pos);
+      floor_shader.SetInt("blinn", use_blinn);
 
-    {
-      instance_shader.Use();
-      instance_shader.SetMat4f("view", camera.GetViewMatrix());
-      instance_shader.SetMat4f("projection", projection);
-      for(unsigned int i = 0; i < rock.meshes.size(); i++)
-      {
-        glBindVertexArray(rock.meshes[i].VAO);
-        glDrawElementsInstanced(
-            GL_TRIANGLES, rock.meshes[i].indices.size(), GL_UNSIGNED_INT, 0, amount
-        );
-      }
-    }
-    {
-        //      normal_shader.Use();
-        //      normal_shader.SetFloat("time", glfwGetTime());
-        //      normal_shader.SetMat4f("view", camera.GetViewMatrix());
-        //      normal_shader.SetMat4f("projection", projection);
-        //      normal_shader.SetMat4f("model", glm::mat4(1.0));
-        //      nanosuit.Draw(normal_shader);
-    }
-
-    //    glClearColor(0.2, 0.2, 0.2, 1.0);
-    //    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-    //    GL_STENCIL_BUFFER_BIT);
-
-    {
-        //      geo_shader.Use();
-        //      glBindVertexArray(geo_vao);
-        //      glDrawArrays(GL_POINTS, 0, 4);
-    }
-
-    {
-        //      glEnable(GL_DEPTH_TEST);
-        //      //      glStencilOp(GL_KEEP,GL_KEEP,GL_REPLACE);
-        //      //      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-        //      //      GL_STENCIL_BUFFER_BIT);
-        //
-        //      // glStencilMask(0x00); //
-        //      记得保证我们在绘制地板的时候不会更新模板缓冲
-        //      glBindVertexArray(planeVAO);
-        //      glm::mat4 model(1.0);
-        //      cube_shader.Use();
-        //      cube_shader.SetMat4f("projection", projection);
-        //      cube_shader.SetMat4f("view", camera.GetViewMatrix());
-        //      cube_shader.SetMat4f("model", model);
-        //      glBindTexture(GL_TEXTURE_2D, floorTexture);
-        //
-        //      glDrawArrays(GL_TRIANGLES, 0, 6);
-        //      glBindVertexArray(0);
-    }
-
-    {
-
-        //      auto model = glm::mat4(1.0f);
-        //      glBindVertexArray(cubeVAO);
-        //      glActiveTexture(GL_TEXTURE0);
-        //      glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        //      cube_shader.Use();
-        //      cube_shader.SetMat4f("projection", projection);
-        //      cube_shader.SetMat4f("view", camera.GetViewMatrix());
-        //      cube_shader.SetVec3("cameraPos", camera.Position);
-        //      model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-        //      cube_shader.SetMat4f("model", model);
-        //      glDrawArrays(GL_TRIANGLES, 0, 36);
-        //      model = glm::mat4(1.0f);
-        //      model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        //      cube_shader.SetMat4f("model", model);
-        //      glDrawArrays(GL_TRIANGLES, 0, 36);
-    } //    { nanosuit.Draw(cube_shader); }
-
-    {
-        //      glBindVertexArray(transparentVAO);
-        //      glBindTexture(GL_TEXTURE_2D, transparentTexture);
-        //      for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
-        //        auto model = glm::mat4(1.0f);
-        //        model = glm::translate(model, it->second);
-        //        cube_shader.SetMat4f("model", model);
-        //        glDrawArrays(GL_TRIANGLES, 0, 6);
-        //      }
+      glBindVertexArray(plane_vao);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, floor_tex);
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+      glBindVertexArray(0);
     }
 
     {
@@ -540,21 +285,20 @@ int main() {
         //      glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
         //      glDrawArrays(GL_TRIANGLES, 0, 36);
         //      glBindVertexArray(0);
-        //      // glDepthMask(GL_TRUE);
         //      glDepthFunc(GL_LESS);
     }
 
     {
 
-        //      glBindVertexArray(grid_plane_vao);
-        //      plane_shader.Use();
-        //      plane_shader.SetMat4f("view", camera.GetViewMatrix());
-        //      plane_shader.SetMat4f("projection", projection);
-        //      plane_shader.SetMat4f("inv_view",
-        //      glm::inverse(camera.GetViewMatrix()));
-        //      plane_shader.SetMat4f("inv_proj", glm::inverse(projection));
-        //      glDrawArrays(GL_TRIANGLES, 0, 6);
-        //      glBindVertexArray(0);
+//      glBindVertexArray(grid_plane_vao);
+//      grid_plane_shader.Use();
+//      grid_plane_shader.SetMat4f("view", camera.GetViewMatrix());
+//      grid_plane_shader.SetMat4f("projection", projection);
+//      grid_plane_shader.SetMat4f("inv_view",
+//                                 glm::inverse(camera.GetViewMatrix()));
+//      grid_plane_shader.SetMat4f("inv_proj", glm::inverse(projection));
+//      glDrawArrays(GL_TRIANGLES, 0, 6);
+//      glBindVertexArray(0);
     }
 
     {
@@ -572,13 +316,12 @@ int main() {
       glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
-    {}
-
     ImGui::Begin("Demo window");
     auto res = ImGui::Button("Hello!");
     if (res)
       cout << "click" << endl;
     // ImGui::Bullet();
+    ImGui::Checkbox("bl", &use_blinn);
     ImGui::End();
 
     ImGui::Render();
