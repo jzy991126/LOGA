@@ -128,7 +128,9 @@ int main() {
       5.0f, -0.5f, 5.0f,  2.0f,  0.0f,  -5.0f, -0.5f, -5.0f,
       0.0f, 2.0f,  5.0f,  -0.5f, -5.0f, 2.0f,  2.0f};
 
-  Model nanosuit("model/nanosuit/nanosuit.obj");
+  // Model nanosuit("model/nanosuit/nanosuit.obj");
+  Model planet("model/planet/planet.obj");
+  Model rock("model/rock/rock.obj");
   //   Shader model_shader("shaders/3/model.vert", "shaders/3/model.frag");
 
   float transparentVertices[] = {
@@ -325,6 +327,8 @@ int main() {
                       "shaders/3/model.geom");
   Shader normal_shader("shaders/3/normal.vert", "shaders/3/normal.frag",
                        "shaders/3/normal.geom");
+  Shader instance_shader("shaders/3/instance.vert", "shaders/3/instance.frag");
+
   // glStencilMask(0x00); // 每一位写入模板缓冲时都保持原样
   //  glStencilFunc(GL_EQUAL, 1, 0xFF);
 
@@ -347,6 +351,65 @@ int main() {
                         (void *)(2 * sizeof(float)));
   glBindVertexArray(0);
 
+  unsigned int amount = 100000;
+  glm::mat4 *modelMatrices;
+  modelMatrices = new glm::mat4[amount];
+  srand(glfwGetTime()); // 初始化随机种子
+  float radius = 150.0;
+  float offset = 25.f;
+  for (unsigned int i = 0; i < amount; i++) {
+    glm::mat4 model(1.0);
+    // 1. 位移：分布在半径为 'radius' 的圆形上，偏移的范围是 [-offset, offset]
+    float angle = (float)i / (float)amount * 360.0f;
+    float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+    float x = sin(angle) * radius + displacement;
+    displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+    float y = displacement * 0.4f; // 让行星带的高度比x和z的宽度要小
+    displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+    float z = cos(angle) * radius + displacement;
+    model = glm::translate(model, glm::vec3(x, y, z));
+
+    // 2. 缩放：在 0.05 和 0.25f 之间缩放
+    float scale = (rand() % 20) / 100.0f + 0.05;
+    model = glm::scale(model, glm::vec3(scale));
+
+    // 3. 旋转：绕着一个（半）随机选择的旋转轴向量进行随机的旋转
+    float rotAngle = (rand() % 360);
+    model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+    // 4. 添加到矩阵的数组中
+    modelMatrices[i] = model;
+  }
+
+  unsigned int buffer;
+  glGenBuffers(1, &buffer);
+  glBindBuffer(GL_ARRAY_BUFFER, buffer);
+  glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+
+  for(unsigned int i = 0; i < rock.meshes.size(); i++)
+  {
+    unsigned int VAO = rock.meshes[i].VAO;
+    glBindVertexArray(VAO);
+    // 顶点属性
+    GLsizei vec4Size = sizeof(glm::vec4);
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(vec4Size));
+    glEnableVertexAttribArray(5);
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
+    glEnableVertexAttribArray(6);
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
+
+    glVertexAttribDivisor(3, 1);
+    glVertexAttribDivisor(4, 1);
+    glVertexAttribDivisor(5, 1);
+    glVertexAttribDivisor(6, 1);
+
+    glBindVertexArray(0);
+  }
+
+
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     process_input(window);
@@ -365,7 +428,7 @@ int main() {
     glm::mat4 projection;
     projection =
         glm::perspective(glm::radians(camera.Zoom),
-                         float(screen_width) / screen_height, 0.1f, 100.0f);
+                         float(screen_width) / screen_height, 10.f, 10000.0f);
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glEnable(GL_DEPTH_TEST);
@@ -378,16 +441,32 @@ int main() {
       model_shader.SetFloat("time", glfwGetTime());
       model_shader.SetMat4f("view", camera.GetViewMatrix());
       model_shader.SetMat4f("projection", projection);
-      model_shader.SetMat4f("model", glm::mat4(1.0));
-      nanosuit.Draw(model_shader);
+      glm::mat4 model(1.0);
+      model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
+      model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
+      model_shader.SetMat4f("model", model);
+      planet.Draw(model_shader);
+    }
+
+    {
+      instance_shader.Use();
+      instance_shader.SetMat4f("view", camera.GetViewMatrix());
+      instance_shader.SetMat4f("projection", projection);
+      for(unsigned int i = 0; i < rock.meshes.size(); i++)
+      {
+        glBindVertexArray(rock.meshes[i].VAO);
+        glDrawElementsInstanced(
+            GL_TRIANGLES, rock.meshes[i].indices.size(), GL_UNSIGNED_INT, 0, amount
+        );
+      }
     }
     {
-      normal_shader.Use();
-      normal_shader.SetFloat("time", glfwGetTime());
-      normal_shader.SetMat4f("view", camera.GetViewMatrix());
-      normal_shader.SetMat4f("projection", projection);
-      normal_shader.SetMat4f("model", glm::mat4(1.0));
-      nanosuit.Draw(normal_shader);
+        //      normal_shader.Use();
+        //      normal_shader.SetFloat("time", glfwGetTime());
+        //      normal_shader.SetMat4f("view", camera.GetViewMatrix());
+        //      normal_shader.SetMat4f("projection", projection);
+        //      normal_shader.SetMat4f("model", glm::mat4(1.0));
+        //      nanosuit.Draw(normal_shader);
     }
 
     //    glClearColor(0.2, 0.2, 0.2, 1.0);
