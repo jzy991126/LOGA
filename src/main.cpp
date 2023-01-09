@@ -428,7 +428,7 @@ int main() {
     glm::mat4 projection;
     projection =
         glm::perspective(glm::radians(camera.Zoom),
-                         float(screen_width) / screen_height, 10.f, 10000.0f);
+                         float(screen_width) / screen_height, 1.f, 10000.0f);
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glEnable(GL_DEPTH_TEST);
