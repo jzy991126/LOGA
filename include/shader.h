@@ -14,7 +14,7 @@ public:
   unsigned int id_;
 
   // 构造器读取并构建着色器
-  Shader(const char *vertex_path, const char *fragment_path);
+  Shader(const char *vertex_path, const char *fragment_path,const char* geo_path= nullptr);
   // 使用/激活程序
   void Use();
   // uniform工具函数
@@ -25,6 +25,6 @@ public:
   void SetVec3(const std::string &name, const glm::vec3 &value) const;
   void SetVec2(const std::string &name, const glm::vec2 &value) const;
 
-private:
-  void CheckCompileErrors(unsigned int shader, std::string type);
+public:
+  static void CheckCompileErrors(unsigned int shader, std::string type);
 };

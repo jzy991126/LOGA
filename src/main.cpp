@@ -129,7 +129,7 @@ int main() {
       0.0f, 2.0f,  5.0f,  -0.5f, -5.0f, 2.0f,  2.0f};
 
   Model nanosuit("model/nanosuit/nanosuit.obj");
-  //  Shader model_shader("shaders/3/model.vert", "shaders/3/model.frag");
+  //   Shader model_shader("shaders/3/model.vert", "shaders/3/model.frag");
 
   float transparentVertices[] = {
       // positions         // texture Coords (swapped y coordinates because
@@ -319,8 +319,34 @@ int main() {
   Shader single_shader("shaders/4/cube.vert", "shaders/4/single.frag");
   Shader fbo_shader("shaders/6/fbo.vert", "shaders/6/fbo.frag");
   Shader skybox_shader("shaders/7/skymap.vert", "shaders/7/skymap.frag");
+  Shader geo_shader("shaders/8/geo.vert", "shaders/8/geo.frag",
+                    "shaders/8/geo.geom");
+  Shader model_shader("shaders/3/model.vert", "shaders/3/model.frag",
+                      "shaders/3/model.geom");
+  Shader normal_shader("shaders/3/normal.vert", "shaders/3/normal.frag",
+                       "shaders/3/normal.geom");
   // glStencilMask(0x00); // 每一位写入模板缓冲时都保持原样
   //  glStencilFunc(GL_EQUAL, 1, 0xFF);
+
+  float geo_points[] = {
+      -0.5f, 0.5f,  1.0f, 0.0f, 0.0f, // 左上
+      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, // 右上
+      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, // 右下
+      -0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // 左下
+  };
+  unsigned int geo_vao, geo_vbo;
+  glGenVertexArrays(1, &geo_vao);
+  glGenBuffers(1, &geo_vbo);
+  glBindVertexArray(geo_vao);
+  glBindBuffer(GL_ARRAY_BUFFER, geo_vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(geo_points), geo_points, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                        (void *)(2 * sizeof(float)));
+  glBindVertexArray(0);
+
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     process_input(window);
@@ -347,9 +373,32 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT |
             GL_DEPTH_BUFFER_BIT); // 我们现在不使用模板缓冲
 
+    {
+      model_shader.Use();
+      model_shader.SetFloat("time", glfwGetTime());
+      model_shader.SetMat4f("view", camera.GetViewMatrix());
+      model_shader.SetMat4f("projection", projection);
+      model_shader.SetMat4f("model", glm::mat4(1.0));
+      nanosuit.Draw(model_shader);
+    }
+    {
+      normal_shader.Use();
+      normal_shader.SetFloat("time", glfwGetTime());
+      normal_shader.SetMat4f("view", camera.GetViewMatrix());
+      normal_shader.SetMat4f("projection", projection);
+      normal_shader.SetMat4f("model", glm::mat4(1.0));
+      nanosuit.Draw(normal_shader);
+    }
+
     //    glClearColor(0.2, 0.2, 0.2, 1.0);
     //    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
     //    GL_STENCIL_BUFFER_BIT);
+
+    {
+        //      geo_shader.Use();
+        //      glBindVertexArray(geo_vao);
+        //      glDrawArrays(GL_POINTS, 0, 4);
+    }
 
     {
         //      glEnable(GL_DEPTH_TEST);
@@ -373,26 +422,22 @@ int main() {
 
     {
 
-      //      glStencilFunc(GL_ALWAYS, 1, 0xFF);
-      //      glStencilMask(0xFF);
-      auto model = glm::mat4(1.0f);
-      glBindVertexArray(cubeVAO);
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-      cube_shader.Use();
-      cube_shader.SetMat4f("projection", projection);
-      cube_shader.SetMat4f("view", camera.GetViewMatrix());
-      cube_shader.SetVec3("cameraPos", camera.Position);
-      model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-      cube_shader.SetMat4f("model", model);
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-      model = glm::mat4(1.0f);
-      model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-      cube_shader.SetMat4f("model", model);
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-      // floor
-    }
-    { nanosuit.Draw(cube_shader); }
+        //      auto model = glm::mat4(1.0f);
+        //      glBindVertexArray(cubeVAO);
+        //      glActiveTexture(GL_TEXTURE0);
+        //      glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        //      cube_shader.Use();
+        //      cube_shader.SetMat4f("projection", projection);
+        //      cube_shader.SetMat4f("view", camera.GetViewMatrix());
+        //      cube_shader.SetVec3("cameraPos", camera.Position);
+        //      model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        //      cube_shader.SetMat4f("model", model);
+        //      glDrawArrays(GL_TRIANGLES, 0, 36);
+        //      model = glm::mat4(1.0f);
+        //      model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        //      cube_shader.SetMat4f("model", model);
+        //      glDrawArrays(GL_TRIANGLES, 0, 36);
+    } //    { nanosuit.Draw(cube_shader); }
 
     {
         //      glBindVertexArray(transparentVAO);
@@ -406,30 +451,31 @@ int main() {
     }
 
     {
-      glDepthFunc(GL_LEQUAL);
-      glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
-      skybox_shader.Use();
-      skybox_shader.SetMat4f("view", view);
-      skybox_shader.SetMat4f("projection", projection);
-      glBindVertexArray(skybox_vao);
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-      glBindVertexArray(0);
-      // glDepthMask(GL_TRUE);
-      glDepthFunc(GL_LESS);
+        //      glDepthFunc(GL_LEQUAL);
+        //      glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
+        //      skybox_shader.Use();
+        //      skybox_shader.SetMat4f("view", view);
+        //      skybox_shader.SetMat4f("projection", projection);
+        //      glBindVertexArray(skybox_vao);
+        //      glActiveTexture(GL_TEXTURE0);
+        //      glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        //      glDrawArrays(GL_TRIANGLES, 0, 36);
+        //      glBindVertexArray(0);
+        //      // glDepthMask(GL_TRUE);
+        //      glDepthFunc(GL_LESS);
     }
 
     {
-      // glDisable(GL_DEPTH_TEST);
-      glBindVertexArray(grid_plane_vao);
-      plane_shader.Use();
-      plane_shader.SetMat4f("view", camera.GetViewMatrix());
-      plane_shader.SetMat4f("projection", projection);
-      plane_shader.SetMat4f("inv_view", glm::inverse(camera.GetViewMatrix()));
-      plane_shader.SetMat4f("inv_proj", glm::inverse(projection));
-      glDrawArrays(GL_TRIANGLES, 0, 6);
-      glBindVertexArray(0);
+
+        //      glBindVertexArray(grid_plane_vao);
+        //      plane_shader.Use();
+        //      plane_shader.SetMat4f("view", camera.GetViewMatrix());
+        //      plane_shader.SetMat4f("projection", projection);
+        //      plane_shader.SetMat4f("inv_view",
+        //      glm::inverse(camera.GetViewMatrix()));
+        //      plane_shader.SetMat4f("inv_proj", glm::inverse(projection));
+        //      glDrawArrays(GL_TRIANGLES, 0, 6);
+        //      glBindVertexArray(0);
     }
 
     {
@@ -450,7 +496,10 @@ int main() {
     {}
 
     ImGui::Begin("Demo window");
-    ImGui::Button("Hello!");
+    auto res = ImGui::Button("Hello!");
+    if (res)
+      cout << "click" << endl;
+    // ImGui::Bullet();
     ImGui::End();
 
     ImGui::Render();
