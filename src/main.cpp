@@ -18,6 +18,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 800;
 
 void renderCube();
+void renderQuad();
 
 int screen_width, screen_height;
 float lastX = SCR_WIDTH / 2, lastY = SCR_HEIGHT / 2;
@@ -41,7 +42,7 @@ void renderScene(const Shader &shader);
 
 Camera camera(glm::vec3(0, 0, 3));
 
-glm::vec3 light_pos(-2.f, 4.f, -1.f);
+glm::vec3 light_pos(0.5f, 1.0f, 0.3f);
 
 int main() {
 
@@ -144,6 +145,8 @@ int main() {
   vector<std::string> faces{"right.jpg",  "left.jpg",  "top.jpg",
                             "bottom.jpg", "front.jpg", "back.jpg"};
   unsigned int floor_tex = loadTexture("img/wood.png");
+  unsigned int brick_tex = loadTexture("img/brickwall.jpg");
+  unsigned int norm_tex = loadTexture("img/brickwall_normal.jpg");
 
   unsigned int plane_vbo;
   glGenVertexArrays(1, &plane_vao);
@@ -243,7 +246,7 @@ int main() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-  GLfloat borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+  GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
   glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
   glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo);
@@ -264,6 +267,8 @@ int main() {
   Shader grid_plane_shader("shaders/2/plane.vert", "shaders/2/plane.frag");
   Shader depth_shader("shaders/10/depth.vert", "shaders/10/depth.frag");
   Shader debug_depth_shader("shaders/6/fbo.vert", "shaders/6/depth.frag");
+  Shader normal_map_shader("shaders/11/normalmap.vert",
+                           "shaders/11/normalmap.frag");
 
   floor_shader.Use();
   floor_shader.SetInt("floorTexture", 0);
@@ -278,7 +283,12 @@ int main() {
   depth_shader.SetMat4f("lightSpaceMatrix", light_space_mat);
   depth_shader.SetMat4f("model", glm::mat4(1.0));
 
-  bool use_blinn = false;
+  normal_map_shader.Use();
+  normal_map_shader.SetInt("diff_tex", 0);
+  normal_map_shader.SetInt("norm_tex", 1);
+  normal_map_shader.SetVec3("light_pos", light_pos);
+
+  bool use_norm_map = false;
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -295,48 +305,64 @@ int main() {
     glm::mat4 projection;
     projection =
         glm::perspective(glm::radians(camera.Zoom),
-                         float(screen_width) / screen_height, 1.f, 10000.0f);
+                         float(screen_width) / screen_height, 0.01f, 10000.0f);
 
-    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-    glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo);
-    glEnable(GL_DEPTH_TEST);
+    {
+
+      //      glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+      //      glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo);
+      //      glEnable(GL_DEPTH_TEST);
+      //      glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+      //      glClear(GL_COLOR_BUFFER_BIT |
+      //              GL_DEPTH_BUFFER_BIT); // 我们现在不使用模板缓冲
+      //      depth_shader.Use();
+      //      glActiveTexture(GL_TEXTURE0);
+      //      glBindTexture(GL_TEXTURE_2D, floor_tex);
+      //      renderScene(depth_shader);
+      //      glBindVertexArray(0);
+    }
+    glViewport(0, 0, SCR_WIDTH, SCR_WIDTH);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT |
             GL_DEPTH_BUFFER_BIT); // 我们现在不使用模板缓冲
-
     {
 
-      depth_shader.Use();
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, floor_tex);
-      renderScene(depth_shader);
-      glBindVertexArray(0);
+        //      floor_shader.Use();
+        //      floor_shader.SetMat4f("projection", projection);
+        //      floor_shader.SetMat4f("view", camera.GetViewMatrix());
+        //      // set light uniforms
+        //      floor_shader.SetVec3("viewPos", camera.Position);
+        //      floor_shader.SetVec3("lightPos", light_pos);
+        //      floor_shader.SetInt("blinn", use_norm_map);
+        //      floor_shader.SetMat4f("lightSpaceMatrix", light_space_mat);
+        //
+        //      //      glBindVertexArray(plane_vao);
+        //      glActiveTexture(GL_TEXTURE0);
+        //      glBindTexture(GL_TEXTURE_2D, floor_tex);
+        //      glActiveTexture(GL_TEXTURE1);
+        //      glBindTexture(GL_TEXTURE_2D, depth_map);
+        //      // glDrawArrays(GL_TRIANGLES, 0, 6);
+        //      renderScene(floor_shader);
+        //      glBindVertexArray(0);
     }
 
     {
-      glViewport(0, 0, SCR_WIDTH, SCR_WIDTH);
-      glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-      glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-      glClear(GL_COLOR_BUFFER_BIT |
-              GL_DEPTH_BUFFER_BIT); // 我们现在不使用模板缓冲
 
-      floor_shader.Use();
-      floor_shader.SetMat4f("projection", projection);
-      floor_shader.SetMat4f("view", camera.GetViewMatrix());
-      // set light uniforms
-      floor_shader.SetVec3("viewPos", camera.Position);
-      floor_shader.SetVec3("lightPos", light_pos);
-      floor_shader.SetInt("blinn", use_blinn);
-      floor_shader.SetMat4f("lightSpaceMatrix", light_space_mat);
-
-//      glBindVertexArray(plane_vao);
+      glm::mat4 model(1.0);
+      model = glm::rotate(model, (GLfloat)glfwGetTime() * -2,
+                          glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+      normal_map_shader.Use();
+      normal_map_shader.SetMat4f("projection", projection);
+      normal_map_shader.SetMat4f("view", camera.GetViewMatrix());
+      normal_map_shader.SetMat4f("model", model);
+      normal_map_shader.SetVec3("view_pos", camera.Position);
+      normal_map_shader.SetInt("norm_map", use_norm_map);
       glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, floor_tex);
+      glBindTexture(GL_TEXTURE_2D, brick_tex);
       glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D, depth_map);
-      // glDrawArrays(GL_TRIANGLES, 0, 6);
-      renderScene(floor_shader);
-      glBindVertexArray(0);
+      glBindTexture(GL_TEXTURE_2D, norm_tex);
+      renderQuad();
     }
 
     {
@@ -380,11 +406,11 @@ int main() {
       glBindTexture(GL_TEXTURE_2D, fbo_texture);
       glDrawArrays(GL_TRIANGLES, 0, 6);
 
-      debug_depth_shader.Use();
-      glBindVertexArray(quadVAO1);
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, depth_map);
-      glDrawArrays(GL_TRIANGLES, 0, 6);
+      //      debug_depth_shader.Use();
+      //      glBindVertexArray(quadVAO1);
+      //      glActiveTexture(GL_TEXTURE0);
+      //      glBindTexture(GL_TEXTURE_2D, depth_map);
+      //      glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
     ImGui::Begin("Demo window");
@@ -392,7 +418,7 @@ int main() {
     if (res)
       cout << "click" << endl;
     // ImGui::Bullet();
-    ImGui::Checkbox("bl", &use_blinn);
+    ImGui::Checkbox("normal_map", &use_norm_map);
     ImGui::End();
 
     ImGui::Render();
@@ -641,5 +667,108 @@ void renderCube() {
   // render Cube
   glBindVertexArray(cubeVAO);
   glDrawArrays(GL_TRIANGLES, 0, 36);
+  glBindVertexArray(0);
+}
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
+void renderQuad() {
+  if (quadVAO == 0) {
+    // positions
+    glm::vec3 pos1(-1.0f, 1.0f, 0.0f);
+    glm::vec3 pos2(-1.0f, -1.0f, 0.0f);
+    glm::vec3 pos3(1.0f, -1.0f, 0.0f);
+    glm::vec3 pos4(1.0f, 1.0f, 0.0f);
+    // texture coordinates
+    glm::vec2 uv1(0.0f, 1.0f);
+    glm::vec2 uv2(0.0f, 0.0f);
+    glm::vec2 uv3(1.0f, 0.0f);
+    glm::vec2 uv4(1.0f, 1.0f);
+    // normal vector
+    glm::vec3 nm(0.0f, 0.0f, 1.0f);
+
+    // calculate tangent/bitangent vectors of both triangles
+    glm::vec3 tangent1, bitangent1;
+    glm::vec3 tangent2, bitangent2;
+    // triangle 1
+    // ----------
+    glm::vec3 edge1 = pos2 - pos1;
+    glm::vec3 edge2 = pos3 - pos1;
+    glm::vec2 deltaUV1 = uv2 - uv1;
+    glm::vec2 deltaUV2 = uv3 - uv1;
+
+    float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+    tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+    tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+    tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+    bitangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+    bitangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+    bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+    // triangle 2
+    // ----------
+    edge1 = pos3 - pos1;
+    edge2 = pos4 - pos1;
+    deltaUV1 = uv3 - uv1;
+    deltaUV2 = uv4 - uv1;
+
+    f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+    tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+    tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+    tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+    bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+    bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+    bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+    float quadVertices[] = {
+        // positions            // normal         // texcoords  // tangent //
+        // bitangent
+        pos1.x,       pos1.y,       pos1.z,       nm.x,         nm.y,
+        nm.z,         uv1.x,        uv1.y,        tangent1.x,   tangent1.y,
+        tangent1.z,   bitangent1.x, bitangent1.y, bitangent1.z, pos2.x,
+        pos2.y,       pos2.z,       nm.x,         nm.y,         nm.z,
+        uv2.x,        uv2.y,        tangent1.x,   tangent1.y,   tangent1.z,
+        bitangent1.x, bitangent1.y, bitangent1.z, pos3.x,       pos3.y,
+        pos3.z,       nm.x,         nm.y,         nm.z,         uv3.x,
+        uv3.y,        tangent1.x,   tangent1.y,   tangent1.z,   bitangent1.x,
+        bitangent1.y, bitangent1.z,
+
+        pos1.x,       pos1.y,       pos1.z,       nm.x,         nm.y,
+        nm.z,         uv1.x,        uv1.y,        tangent2.x,   tangent2.y,
+        tangent2.z,   bitangent2.x, bitangent2.y, bitangent2.z, pos3.x,
+        pos3.y,       pos3.z,       nm.x,         nm.y,         nm.z,
+        uv3.x,        uv3.y,        tangent2.x,   tangent2.y,   tangent2.z,
+        bitangent2.x, bitangent2.y, bitangent2.z, pos4.x,       pos4.y,
+        pos4.z,       nm.x,         nm.y,         nm.z,         uv4.x,
+        uv4.y,        tangent2.x,   tangent2.y,   tangent2.z,   bitangent2.x,
+        bitangent2.y, bitangent2.z};
+    // configure plane VAO
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices,
+                 GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float),
+                          (void *)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float),
+                          (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float),
+                          (void *)(6 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float),
+                          (void *)(8 * sizeof(float)));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float),
+                          (void *)(11 * sizeof(float)));
+  }
+  glBindVertexArray(quadVAO);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
   glBindVertexArray(0);
 }
