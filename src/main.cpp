@@ -147,6 +147,9 @@ int main() {
   unsigned int floor_tex = loadTexture("img/wood.png");
   unsigned int brick_tex = loadTexture("img/brickwall.jpg");
   unsigned int norm_tex = loadTexture("img/brickwall_normal.jpg");
+  unsigned int brick2_tex = loadTexture("img/bricks2.jpg");
+  unsigned int brick2_norm_tex = loadTexture("img/bricks2_normal.jpg");
+  unsigned int brick2_disp_tex = loadTexture("img/bricks2_disp.jpg");
 
   unsigned int plane_vbo;
   glGenVertexArrays(1, &plane_vao);
@@ -286,9 +289,11 @@ int main() {
   normal_map_shader.Use();
   normal_map_shader.SetInt("diff_tex", 0);
   normal_map_shader.SetInt("norm_tex", 1);
+  normal_map_shader.SetInt("disp_tex", 2);
   normal_map_shader.SetVec3("light_pos", light_pos);
 
   bool use_norm_map = false;
+  float height_scale = 0.1f;
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -350,18 +355,21 @@ int main() {
     {
 
       glm::mat4 model(1.0);
-      model = glm::rotate(model, (GLfloat)glfwGetTime() * -2,
-                          glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+      //      model = glm::rotate(model, (GLfloat)glfwGetTime() * -2,
+      //                          glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
       normal_map_shader.Use();
       normal_map_shader.SetMat4f("projection", projection);
       normal_map_shader.SetMat4f("view", camera.GetViewMatrix());
       normal_map_shader.SetMat4f("model", model);
       normal_map_shader.SetVec3("view_pos", camera.Position);
       normal_map_shader.SetInt("norm_map", use_norm_map);
+      normal_map_shader.SetFloat("height_scale", height_scale);
       glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, brick_tex);
+      glBindTexture(GL_TEXTURE_2D, brick2_tex);
       glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D, norm_tex);
+      glBindTexture(GL_TEXTURE_2D, brick2_norm_tex);
+      glActiveTexture(GL_TEXTURE2);
+      glBindTexture(GL_TEXTURE_2D, brick2_disp_tex);
       renderQuad();
     }
 
@@ -414,11 +422,7 @@ int main() {
     }
 
     ImGui::Begin("Demo window");
-    auto res = ImGui::Button("Hello!");
-    if (res)
-      cout << "click" << endl;
-    // ImGui::Bullet();
-    ImGui::Checkbox("normal_map", &use_norm_map);
+    ImGui::DragFloat("height scale", &height_scale, 0.1f, 0.f, 10.f);
     ImGui::End();
 
     ImGui::Render();

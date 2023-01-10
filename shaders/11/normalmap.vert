@@ -21,19 +21,31 @@ out VS_OUT {
 
 void main() {
 
-    vs_out.texcoords = aTexcoords;
-    mat4 normal_mat = transpose(inverse(model));
+    //    vs_out.texcoords = aTexcoords;
+    //    mat4 normal_mat = transpose(inverse(model));
+    //
+    //    vec3 T = normalize(vec3(model * vec4(tangent, 0.0)));
+    //    vec3 B = normalize(vec3(model * vec4(bitangent, 0.0)));
+    //    vec3 N = normalize(vec3(model * vec4(aNormal, 0.0)));
+    //    mat3 TBN = transpose(mat3(T, B, N));
+    //
+    //    vs_out.t_position = TBN * vec3(model * vec4(aPos, 1.0));
+    //    vs_out.t_light_pos = TBN * light_pos;
+    //    vs_out.t_view_pos = TBN * view_pos;
+    //
+    //    gl_Position = projection * view * model * vec4(aPos, 1.0);
 
-    vec3 T = normalize(vec3(normal_mat * vec4(tangent, 0.0)));
-    vec3 B = normalize(vec3(normal_mat * vec4(bitangent, 0.0)));
-    vec3 N = normalize(vec3(normal_mat * vec4(aNormal, 0.0)));
+    gl_Position = projection * view * model * vec4(aPos, 1.0f);
+    vs_out.texcoords = aTexcoords;
+
+
+    vec3 T = normalize(mat3(model) * tangent);
+    vec3 B = normalize(mat3(model) * bitangent);
+    vec3 N = normalize(mat3(model) * aNormal);
     mat3 TBN = transpose(mat3(T, B, N));
 
-    vs_out.t_position = TBN * vec3(model * vec4(aPos, 1.0));
     vs_out.t_light_pos = TBN * light_pos;
     vs_out.t_view_pos = TBN * view_pos;
-
-
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    vs_out.t_position = TBN * vec3(model * vec4(aPos, 1.0));
 
 }
