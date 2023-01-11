@@ -38,7 +38,6 @@ unsigned int loadTexture(char const *path);
 unsigned int loadCubemap(vector<std::string> faces);
 void mouse_button_callback(GLFWwindow *window, int button, int action,
                            int mods);
-void renderScene(const Shader &shader);
 
 Camera camera(glm::vec3(0, 0, 5));
 
@@ -143,25 +142,26 @@ int main() {
       25.0f,  -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f};
 
   std::vector<glm::vec3> lightPositions;
-  lightPositions.emplace_back(0.0f, 0.0f, 49.5f); // back light
-  lightPositions.emplace_back(-1.4f, -1.9f, 9.0f);
-  lightPositions.emplace_back(0.0f, -1.8f, 4.0f);
-  lightPositions.emplace_back(0.8f, -1.7f, 6.0f);
+  lightPositions.emplace_back(0.0f, 0.5f, 1.5f);
+  lightPositions.emplace_back(-4.0f, 0.5f, -3.0f);
+  lightPositions.emplace_back(3.0f, 0.5f, 1.0f);
+  lightPositions.emplace_back(-.8f, 2.4f, -1.0f);
   // colors
   std::vector<glm::vec3> lightColors;
-  lightColors.emplace_back(200.0f, 200.0f, 200.0f);
-  lightColors.emplace_back(0.1f, 0.0f, 0.0f);
-  lightColors.emplace_back(0.0f, 0.0f, 0.2f);
-  lightColors.emplace_back(0.0f, 0.1f, 0.0f);
+  lightColors.emplace_back(5.0f, 5.0f, 5.0f);
+  lightColors.emplace_back(10.0f, 0.0f, 0.0f);
+  lightColors.emplace_back(0.0f, 0.0f, 15.0f);
+  lightColors.emplace_back(0.0f, 5.0f, 0.0f);
 
   vector<std::string> faces{"right.jpg",  "left.jpg",  "top.jpg",
                             "bottom.jpg", "front.jpg", "back.jpg"};
-  unsigned int floor_tex = loadTexture("img/wood.png");
+  unsigned int wood_tex = loadTexture("img/wood.png");
   unsigned int brick_tex = loadTexture("img/brickwall.jpg");
   unsigned int norm_tex = loadTexture("img/brickwall_normal.jpg");
   unsigned int brick2_tex = loadTexture("img/bricks2.jpg");
   unsigned int brick2_norm_tex = loadTexture("img/bricks2_normal.jpg");
   unsigned int brick2_disp_tex = loadTexture("img/bricks2_disp.jpg");
+  unsigned int container_tex = loadTexture("img/container2.png");
 
   unsigned int plane_vbo;
   glGenVertexArrays(1, &plane_vao);
@@ -221,19 +221,23 @@ int main() {
 
   unsigned int fbo;
   glGenFramebuffers(1, &fbo);
-  unsigned int fbo_texture;
   glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-  glGenTextures(1, &fbo_texture);
-  glBindTexture(GL_TEXTURE_2D, fbo_texture);
-
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA,
-               GL_FLOAT, NULL);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                         fbo_texture, 0);
+  GLuint colorBuffers[2];
+  glGenTextures(2, colorBuffers);
+  for (GLuint i = 0; i < 2; i++) {
+    glBindTexture(GL_TEXTURE_2D, colorBuffers[i]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB,
+                 GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // attach texture to framebuffer
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i,
+                           GL_TEXTURE_2D, colorBuffers[i], 0);
+  }
+  GLuint attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+  glDrawBuffers(2, attachments);
 
   unsigned int rbo;
   glGenRenderbuffers(1, &rbo);
@@ -274,6 +278,29 @@ int main() {
               << std::endl;
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+  unsigned int pingpongFBO[2];
+  unsigned int pingpongColorbuffers[2];
+  glGenFramebuffers(2, pingpongFBO);
+  glGenTextures(2, pingpongColorbuffers);
+  for (unsigned int i = 0; i < 2; i++) {
+    glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+    glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[i]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0,
+                 GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(
+        GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+        GL_CLAMP_TO_EDGE); // we clamp to the edge as the blur filter would
+                           // otherwise sample repeated texture values!
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           pingpongColorbuffers[i], 0);
+    // also check if framebuffers are complete (no need for depth buffer)
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+      std::cout << "Framebuffer not complete!" << std::endl;
+  }
+
   unsigned int cubemapTexture = loadCubemap(faces);
 
   Shader fbo_shader("shaders/6/fbo.vert", "shaders/6/fbo.frag");
@@ -284,21 +311,35 @@ int main() {
   Shader debug_depth_shader("shaders/6/fbo.vert", "shaders/6/depth.frag");
   Shader normal_map_shader("shaders/11/normalmap.vert",
                            "shaders/11/normalmap.frag");
-  Shader lighting_shader("shaders/12/lighting.vert",
-                         "shaders/12/lighting.frag");
+  Shader blur_shader("shaders/13/blur.vert", "shaders/13/blur.frag");
+  // Shader
+  // lighting_shader("shaders/12/lighting.vert","shaders/12/lighting.frag");
 
-  lighting_shader.Use();
-  lighting_shader.SetInt("diff_tex", 0);
+  Shader bloom_shader("shaders/13/bloom.vert", "shaders/13/bloom.frag");
+  Shader bloom_blend_shader("shaders/13/bloom_blend.vert",
+                            "shaders/13/bloom_blend.frag");
+  Shader light_cube_shader("shaders/13/bloom.vert",
+                           "shaders/13/lightcube.frag");
+
+  bloom_shader.Use();
+  bloom_shader.SetInt("diff_tex", 0);
   for (unsigned int i = 0; i < lightPositions.size(); i++) {
-    lighting_shader.SetVec3("lights[" + std::to_string(i) + "].position",
-                            lightPositions[i]);
-    lighting_shader.SetVec3("lights[" + std::to_string(i) + "].color",
-                            lightColors[i]);
+    bloom_shader.SetVec3("lights[" + std::to_string(i) + "].position",
+                         lightPositions[i]);
+    bloom_shader.SetVec3("lights[" + std::to_string(i) + "].color",
+                         lightColors[i]);
   }
 
   floor_shader.Use();
   floor_shader.SetInt("floorTexture", 0);
   floor_shader.SetInt("shadowMap", 1);
+
+  bloom_blend_shader.Use();
+  bloom_blend_shader.SetInt("scene", 0);
+  bloom_blend_shader.SetInt("bloomBlur", 1);
+
+  blur_shader.Use();
+  blur_shader.SetInt("image", 0);
 
   glm::mat4 light_projection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 1.0f, 7.5f);
   glm::mat4 light_view = glm::lookAt(light_pos, glm::vec3(0.f, 0.f, 0.f),
@@ -315,7 +356,7 @@ int main() {
   normal_map_shader.SetInt("disp_tex", 2);
   normal_map_shader.SetVec3("light_pos", light_pos);
 
-  bool use_norm_map = false;
+  bool b_use_bloom = false;
   float exposure = 0.1f;
 
   while (!glfwWindowShouldClose(window)) {
@@ -354,32 +395,130 @@ int main() {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT |
             GL_DEPTH_BUFFER_BIT); // 我们现在不使用模板缓冲
+    glEnable(GL_DEPTH_TEST);
 
     {
 
-      glm::mat4 model = glm::mat4(1.0f);
-      model = glm::translate(model, glm::vec3(0.0f, 0.0f, 25.0));
-      model = glm::scale(model, glm::vec3(2.5f, 2.5f, 27.5f));
+      bloom_shader.Use();
+      bloom_shader.SetMat4f("projection", projection);
+      bloom_shader.SetMat4f("view", camera.GetViewMatrix());
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, wood_tex);
 
-      lighting_shader.Use();
-      lighting_shader.SetMat4f("projection", projection);
-      lighting_shader.SetMat4f("view", camera.GetViewMatrix());
-      lighting_shader.SetMat4f("model", model);
+      auto model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0));
+      model = glm::scale(model, glm::vec3(12.5f, 0.5f, 12.5f));
+      bloom_shader.SetMat4f("model", model);
+      renderCube();
 
+      // ----------------
+      //  container
 
-      lighting_shader.SetInt("diff_tex", 0);
+      glBindTexture(GL_TEXTURE_2D, container_tex);
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
+      model = glm::scale(model, glm::vec3(0.5f));
+      bloom_shader.SetMat4f("model", model);
+      renderCube();
+
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3(2.0f, 0.0f, 1.0));
+      model = glm::scale(model, glm::vec3(0.5f));
+      bloom_shader.SetMat4f("model", model);
+      renderCube();
+
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3(-1.0f, -1.0f, 2.0));
+      model = glm::rotate(model, glm::radians(60.0f),
+                          glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+      bloom_shader.SetMat4f("model", model);
+      renderCube();
+
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3(0.0f, 2.7f, 4.0));
+      model = glm::rotate(model, glm::radians(23.0f),
+                          glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+      model = glm::scale(model, glm::vec3(1.25));
+      bloom_shader.SetMat4f("model", model);
+      renderCube();
+
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3(-2.0f, 1.0f, -3.0));
+      model = glm::rotate(model, glm::radians(124.0f),
+                          glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+      bloom_shader.SetMat4f("model", model);
+      renderCube();
+
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3(-3.0f, 0.0f, 0.0));
+      model = glm::scale(model, glm::vec3(0.5f));
+      bloom_shader.SetMat4f("model", model);
+      renderCube();
+
+      // ---------------
+      // light cube
+
+      light_cube_shader.Use();
+      light_cube_shader.SetMat4f("projection", projection);
+      light_cube_shader.SetMat4f("view", camera.GetViewMatrix());
+
       for (unsigned int i = 0; i < lightPositions.size(); i++) {
-        lighting_shader.SetVec3("lights[" + std::to_string(i) + "].position",
-                                lightPositions[i]);
-        lighting_shader.SetVec3("lights[" + std::to_string(i) + "].color",
-                                lightColors[i]);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(lightPositions[i]));
+        model = glm::scale(model, glm::vec3(0.25f));
+        light_cube_shader.SetMat4f("model", model);
+        light_cube_shader.SetVec3("lightColor", lightColors[i]);
+        renderCube();
       }
 
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, floor_tex);
-      renderCube();
+      // ---------
+      //------blur
+      bool horizontal = true, first_iteration = true;
+      unsigned int amount = 10;
+      blur_shader.Use();
+      for (unsigned int i = 0; i < amount; i++) {
+        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
+        blur_shader.SetInt("horizontal", horizontal);
+        glBindTexture(
+            GL_TEXTURE_2D,
+            first_iteration
+                ? colorBuffers[1]
+                : pingpongColorbuffers[!horizontal]); // bind texture of other
+                                                      // framebuffer (or scene
+                                                      // if first iteration)
+        renderQuad();
+        horizontal = !horizontal;
+        if (first_iteration)
+          first_iteration = false;
+      }
+      glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
+
     {
+
+        //      glm::mat4 model = glm::mat4(1.0f);
+        //      model = glm::translate(model, glm::vec3(0.0f, 0.0f, 25.0));
+        //      model = glm::scale(model, glm::vec3(2.5f, 2.5f, 27.5f));
+        //
+        //      lighting_shader.Use();
+        //      lighting_shader.SetMat4f("projection", projection);
+        //      lighting_shader.SetMat4f("view", camera.GetViewMatrix());
+        //      lighting_shader.SetMat4f("model", model);
+        //
+        //      lighting_shader.SetInt("diff_tex", 0);
+        //      for (unsigned int i = 0; i < lightPositions.size(); i++) {
+        //        lighting_shader.SetVec3("lights[" + std::to_string(i) +
+        //        "].position",
+        //                                lightPositions[i]);
+        //        lighting_shader.SetVec3("lights[" + std::to_string(i) +
+        //        "].color",
+        //                                lightColors[i]);
+        //      }
+        //
+        //      glActiveTexture(GL_TEXTURE0);
+        //      glBindTexture(GL_TEXTURE_2D, floor_tex);
+        //      renderCube();
+    } {
 
         //      floor_shader.Use();
         //      floor_shader.SetMat4f("projection", projection);
@@ -387,7 +526,7 @@ int main() {
         //      // set light uniforms
         //      floor_shader.SetVec3("viewPos", camera.Position);
         //      floor_shader.SetVec3("lightPos", light_pos);
-        //      floor_shader.SetInt("blinn", use_norm_map);
+        //      floor_shader.SetInt("blinn", b_use_bloom);
         //      floor_shader.SetMat4f("lightSpaceMatrix", light_space_mat);
         //
         //      //      glBindVertexArray(plane_vao);
@@ -411,7 +550,7 @@ int main() {
         //      normal_map_shader.SetMat4f("view", camera.GetViewMatrix());
         //      normal_map_shader.SetMat4f("model", model);
         //      normal_map_shader.SetVec3("view_pos", camera.Position);
-        //      normal_map_shader.SetInt("norm_map", use_norm_map);
+        //      normal_map_shader.SetInt("norm_map", b_use_bloom);
         //      normal_map_shader.SetFloat("exposure", exposure);
         //      glActiveTexture(GL_TEXTURE0);
         //      glBindTexture(GL_TEXTURE_2D, brick2_tex);
@@ -454,25 +593,39 @@ int main() {
       glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
       glBindFramebuffer(GL_FRAMEBUFFER, 0); // 返回默认
       glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-      glClear(GL_COLOR_BUFFER_BIT);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-      fbo_shader.Use();
-      fbo_shader.SetFloat("exposure", exposure);
-      glBindVertexArray(quadVAO);
-      glDisable(GL_DEPTH_TEST);
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, fbo_texture);
-      glDrawArrays(GL_TRIANGLES, 0, 6);
-
+      //      fbo_shader.Use();
+      //      fbo_shader.SetFloat("exposure", exposure);
+      //      glBindVertexArray(quadVAO);
+      //      glDisable(GL_DEPTH_TEST);
+      //      glActiveTexture(GL_TEXTURE0);
+      //      glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[0]);
+      //      glDrawArrays(GL_TRIANGLES, 0, 6);
+      //
       //      debug_depth_shader.Use();
       //      glBindVertexArray(quadVAO1);
       //      glActiveTexture(GL_TEXTURE0);
-      //      glBindTexture(GL_TEXTURE_2D, depth_map);
+      //      glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[1]);
       //      glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
+    {
+
+      bloom_blend_shader.Use();
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[1]);
+      bloom_blend_shader.SetInt("bloom", b_use_bloom);
+      bloom_blend_shader.SetFloat("exposure", exposure);
+      renderQuad();
+    }
+
     ImGui::Begin("Demo window");
+    ImGui::Checkbox("bloom", &b_use_bloom);
     ImGui::DragFloat("exposure", &exposure, 0.1f, 0.f, 10.f);
+    ImGui::Text("%.2f FPS", 1.f / deltaTime);
     ImGui::End();
 
     ImGui::Render();
@@ -625,31 +778,6 @@ void mouse_button_callback(GLFWwindow *window, int button, int action,
     view_move = false;
 }
 
-void renderScene(const Shader &shader) {
-  // floor
-  glm::mat4 model = glm::mat4(1.0f);
-  shader.SetMat4f("model", model);
-  glBindVertexArray(plane_vao);
-  glDrawArrays(GL_TRIANGLES, 0, 6);
-  // cubes
-  model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
-  model = glm::scale(model, glm::vec3(0.5f));
-  shader.SetMat4f("model", model);
-  renderCube();
-  model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(2.0f, 0.0f, 1.0));
-  model = glm::scale(model, glm::vec3(0.5f));
-  shader.SetMat4f("model", model);
-  renderCube();
-  model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
-  model = glm::rotate(model, glm::radians(60.0f),
-                      glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
-  model = glm::scale(model, glm::vec3(0.25));
-  shader.SetMat4f("model", model);
-  renderCube();
-}
 unsigned int cubeVAO = 0;
 unsigned int cubeVBO = 0;
 void renderCube() {
@@ -728,79 +856,12 @@ unsigned int quadVAO = 0;
 unsigned int quadVBO;
 void renderQuad() {
   if (quadVAO == 0) {
-    // positions
-    glm::vec3 pos1(-1.0f, 1.0f, 0.0f);
-    glm::vec3 pos2(-1.0f, -1.0f, 0.0f);
-    glm::vec3 pos3(1.0f, -1.0f, 0.0f);
-    glm::vec3 pos4(1.0f, 1.0f, 0.0f);
-    // texture coordinates
-    glm::vec2 uv1(0.0f, 1.0f);
-    glm::vec2 uv2(0.0f, 0.0f);
-    glm::vec2 uv3(1.0f, 0.0f);
-    glm::vec2 uv4(1.0f, 1.0f);
-    // normal vector
-    glm::vec3 nm(0.0f, 0.0f, 1.0f);
-
-    // calculate tangent/bitangent vectors of both triangles
-    glm::vec3 tangent1, bitangent1;
-    glm::vec3 tangent2, bitangent2;
-    // triangle 1
-    // ----------
-    glm::vec3 edge1 = pos2 - pos1;
-    glm::vec3 edge2 = pos3 - pos1;
-    glm::vec2 deltaUV1 = uv2 - uv1;
-    glm::vec2 deltaUV2 = uv3 - uv1;
-
-    float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-    tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-    tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-    tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-
-    bitangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-    bitangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-    bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-
-    // triangle 2
-    // ----------
-    edge1 = pos3 - pos1;
-    edge2 = pos4 - pos1;
-    deltaUV1 = uv3 - uv1;
-    deltaUV2 = uv4 - uv1;
-
-    f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-    tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-    tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-    tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-
-    bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-    bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-    bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-
     float quadVertices[] = {
-        // positions            // normal         // texcoords  // tangent //
-        // bitangent
-        pos1.x,       pos1.y,       pos1.z,       nm.x,         nm.y,
-        nm.z,         uv1.x,        uv1.y,        tangent1.x,   tangent1.y,
-        tangent1.z,   bitangent1.x, bitangent1.y, bitangent1.z, pos2.x,
-        pos2.y,       pos2.z,       nm.x,         nm.y,         nm.z,
-        uv2.x,        uv2.y,        tangent1.x,   tangent1.y,   tangent1.z,
-        bitangent1.x, bitangent1.y, bitangent1.z, pos3.x,       pos3.y,
-        pos3.z,       nm.x,         nm.y,         nm.z,         uv3.x,
-        uv3.y,        tangent1.x,   tangent1.y,   tangent1.z,   bitangent1.x,
-        bitangent1.y, bitangent1.z,
-
-        pos1.x,       pos1.y,       pos1.z,       nm.x,         nm.y,
-        nm.z,         uv1.x,        uv1.y,        tangent2.x,   tangent2.y,
-        tangent2.z,   bitangent2.x, bitangent2.y, bitangent2.z, pos3.x,
-        pos3.y,       pos3.z,       nm.x,         nm.y,         nm.z,
-        uv3.x,        uv3.y,        tangent2.x,   tangent2.y,   tangent2.z,
-        bitangent2.x, bitangent2.y, bitangent2.z, pos4.x,       pos4.y,
-        pos4.z,       nm.x,         nm.y,         nm.z,         uv4.x,
-        uv4.y,        tangent2.x,   tangent2.y,   tangent2.z,   bitangent2.x,
-        bitangent2.y, bitangent2.z};
-    // configure plane VAO
+        // positions        // texture Coords
+        -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
+    };
+    // setup plane VAO
     glGenVertexArrays(1, &quadVAO);
     glGenBuffers(1, &quadVBO);
     glBindVertexArray(quadVAO);
@@ -808,22 +869,13 @@ void renderQuad() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices,
                  GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float),
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float),
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                           (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float),
-                          (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float),
-                          (void *)(8 * sizeof(float)));
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float),
-                          (void *)(11 * sizeof(float)));
   }
   glBindVertexArray(quadVAO);
-  glDrawArrays(GL_TRIANGLES, 0, 6);
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
   glBindVertexArray(0);
 }
