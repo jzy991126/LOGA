@@ -40,7 +40,7 @@ void mouse_button_callback(GLFWwindow *window, int button, int action,
                            int mods);
 void renderScene(const Shader &shader);
 
-Camera camera(glm::vec3(0, 0, 3));
+Camera camera(glm::vec3(0, 0, 5));
 
 glm::vec3 light_pos(0.5f, 1.0f, 0.3f);
 
@@ -142,6 +142,18 @@ int main() {
       -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
       25.0f,  -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f};
 
+  std::vector<glm::vec3> lightPositions;
+  lightPositions.emplace_back(0.0f, 0.0f, 49.5f); // back light
+  lightPositions.emplace_back(-1.4f, -1.9f, 9.0f);
+  lightPositions.emplace_back(0.0f, -1.8f, 4.0f);
+  lightPositions.emplace_back(0.8f, -1.7f, 6.0f);
+  // colors
+  std::vector<glm::vec3> lightColors;
+  lightColors.emplace_back(200.0f, 200.0f, 200.0f);
+  lightColors.emplace_back(0.1f, 0.0f, 0.0f);
+  lightColors.emplace_back(0.0f, 0.0f, 0.2f);
+  lightColors.emplace_back(0.0f, 0.1f, 0.0f);
+
   vector<std::string> faces{"right.jpg",  "left.jpg",  "top.jpg",
                             "bottom.jpg", "front.jpg", "back.jpg"};
   unsigned int floor_tex = loadTexture("img/wood.png");
@@ -214,8 +226,8 @@ int main() {
   glGenTextures(1, &fbo_texture);
   glBindTexture(GL_TEXTURE_2D, fbo_texture);
 
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 800, 0, GL_RGB, GL_UNSIGNED_BYTE,
-               NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA,
+               GL_FLOAT, NULL);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -272,6 +284,17 @@ int main() {
   Shader debug_depth_shader("shaders/6/fbo.vert", "shaders/6/depth.frag");
   Shader normal_map_shader("shaders/11/normalmap.vert",
                            "shaders/11/normalmap.frag");
+  Shader lighting_shader("shaders/12/lighting.vert",
+                         "shaders/12/lighting.frag");
+
+  lighting_shader.Use();
+  lighting_shader.SetInt("diff_tex", 0);
+  for (unsigned int i = 0; i < lightPositions.size(); i++) {
+    lighting_shader.SetVec3("lights[" + std::to_string(i) + "].position",
+                            lightPositions[i]);
+    lighting_shader.SetVec3("lights[" + std::to_string(i) + "].color",
+                            lightColors[i]);
+  }
 
   floor_shader.Use();
   floor_shader.SetInt("floorTexture", 0);
@@ -293,7 +316,7 @@ int main() {
   normal_map_shader.SetVec3("light_pos", light_pos);
 
   bool use_norm_map = false;
-  float height_scale = 0.1f;
+  float exposure = 0.1f;
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -331,6 +354,31 @@ int main() {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT |
             GL_DEPTH_BUFFER_BIT); // 我们现在不使用模板缓冲
+
+    {
+
+      glm::mat4 model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3(0.0f, 0.0f, 25.0));
+      model = glm::scale(model, glm::vec3(2.5f, 2.5f, 27.5f));
+
+      lighting_shader.Use();
+      lighting_shader.SetMat4f("projection", projection);
+      lighting_shader.SetMat4f("view", camera.GetViewMatrix());
+      lighting_shader.SetMat4f("model", model);
+
+
+      lighting_shader.SetInt("diff_tex", 0);
+      for (unsigned int i = 0; i < lightPositions.size(); i++) {
+        lighting_shader.SetVec3("lights[" + std::to_string(i) + "].position",
+                                lightPositions[i]);
+        lighting_shader.SetVec3("lights[" + std::to_string(i) + "].color",
+                                lightColors[i]);
+      }
+
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, floor_tex);
+      renderCube();
+    }
     {
 
         //      floor_shader.Use();
@@ -354,23 +402,24 @@ int main() {
 
     {
 
-      glm::mat4 model(1.0);
-      //      model = glm::rotate(model, (GLfloat)glfwGetTime() * -2,
-      //                          glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
-      normal_map_shader.Use();
-      normal_map_shader.SetMat4f("projection", projection);
-      normal_map_shader.SetMat4f("view", camera.GetViewMatrix());
-      normal_map_shader.SetMat4f("model", model);
-      normal_map_shader.SetVec3("view_pos", camera.Position);
-      normal_map_shader.SetInt("norm_map", use_norm_map);
-      normal_map_shader.SetFloat("height_scale", height_scale);
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, brick2_tex);
-      glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D, brick2_norm_tex);
-      glActiveTexture(GL_TEXTURE2);
-      glBindTexture(GL_TEXTURE_2D, brick2_disp_tex);
-      renderQuad();
+        //      glm::mat4 model(1.0);
+        //      //      model = glm::rotate(model, (GLfloat)glfwGetTime() * -2,
+        //      //                          glm::normalize(glm::vec3(1.0,
+        //      0.0, 1.0)));
+        //      normal_map_shader.Use();
+        //      normal_map_shader.SetMat4f("projection", projection);
+        //      normal_map_shader.SetMat4f("view", camera.GetViewMatrix());
+        //      normal_map_shader.SetMat4f("model", model);
+        //      normal_map_shader.SetVec3("view_pos", camera.Position);
+        //      normal_map_shader.SetInt("norm_map", use_norm_map);
+        //      normal_map_shader.SetFloat("exposure", exposure);
+        //      glActiveTexture(GL_TEXTURE0);
+        //      glBindTexture(GL_TEXTURE_2D, brick2_tex);
+        //      glActiveTexture(GL_TEXTURE1);
+        //      glBindTexture(GL_TEXTURE_2D, brick2_norm_tex);
+        //      glActiveTexture(GL_TEXTURE2);
+        //      glBindTexture(GL_TEXTURE_2D, brick2_disp_tex);
+        //      renderQuad();
     }
 
     {
@@ -408,6 +457,7 @@ int main() {
       glClear(GL_COLOR_BUFFER_BIT);
 
       fbo_shader.Use();
+      fbo_shader.SetFloat("exposure", exposure);
       glBindVertexArray(quadVAO);
       glDisable(GL_DEPTH_TEST);
       glActiveTexture(GL_TEXTURE0);
@@ -422,7 +472,7 @@ int main() {
     }
 
     ImGui::Begin("Demo window");
-    ImGui::DragFloat("height scale", &height_scale, 0.1f, 0.f, 10.f);
+    ImGui::DragFloat("exposure", &exposure, 0.1f, 0.f, 10.f);
     ImGui::End();
 
     ImGui::Render();
@@ -673,6 +723,7 @@ void renderCube() {
   glDrawArrays(GL_TRIANGLES, 0, 36);
   glBindVertexArray(0);
 }
+
 unsigned int quadVAO = 0;
 unsigned int quadVBO;
 void renderQuad() {

@@ -49,11 +49,13 @@ Shader::Shader(const char *vertex_path, const char *fragment_path,
   vertex = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vertex, 1, &vShaderCode, NULL);
   glCompileShader(vertex);
+  //std::cout << vertex_path << std::endl;
   CheckCompileErrors(vertex, "VERTEX");
   // fragment Shader
   fragment = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(fragment, 1, &fShaderCode, NULL);
   glCompileShader(fragment);
+  //std::cout << fragment_path << std::endl;
   CheckCompileErrors(fragment, "FRAGMENT");
   // if geometry shader is given, compile geometry shader
   unsigned int geometry;
